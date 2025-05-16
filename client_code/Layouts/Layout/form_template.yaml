@@ -1,2 +1,21 @@
+components_by_slot:
+  navigation:
+  - layout_properties: {}
+    name: nav_link_1
+    properties: {icon: 'mi:counter_1', path: /1, text: ''}
+    type: form:dep_q2wel7ztf6yfx:router.NavLink
+  - layout_properties: {}
+    name: nav_link_2
+    properties: {icon: 'mi:counter_2', path: /2, text: ''}
+    type: form:dep_q2wel7ztf6yfx:router.NavLink
+  - layout_properties: {}
+    name: nav_link_3
+    properties: {icon: 'mi:counter_3', path: /3, text: ''}
+    type: form:dep_q2wel7ztf6yfx:router.NavLink
 is_package: true
 layout: {type: 'form:dep_lin1x4oec0ytd:Layouts.NavigationRailLayout'}
+slots:
+  content:
+    index: 0
+    set_layout_properties: {}
+    target: {name: content, type: slot}

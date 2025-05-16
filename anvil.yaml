@@ -20,5 +20,5 @@ services:
 - client_config: {}
   server_config: {}
   source: /runtime/services/tables.yml
-startup: {module: Layouts.Layout, type: form}
+startup: {module: startup, type: module}
 startup_form: null
