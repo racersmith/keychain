@@ -12,7 +12,7 @@ def get_form_3_data():
     return time.time()
 
 
-FUNCTION_MAP = {
+REQUEST_MAP = {
     "form_1": get_form_1_data,
     "form_2": get_form_2_data,
     "form_3": get_form_3_data,
@@ -21,8 +21,15 @@ FUNCTION_MAP = {
 
 @anvil.server.callable
 def request(*args, **kwargs):
+    """ Single point of access for all client data needs
+    Easier to secure a single endpoint and allows for batched server calls
+    """
+    
     print(f"Requesting data for {kwargs.keys()}")
-    update = {key: FUNCTION_MAP[key]() for key in kwargs.keys() if key in FUNCTION_MAP}
-    print(f"")
+    update = {key: REQUEST_MAP[key]() for key in kwargs.keys() if key in REQUEST_MAP}
+
+    invalid_keys = kwargs.keys() - update.keys()
+    if invalid_keys:
+        print(f"No matching function for keys: {invalid_keys}")
     return update
     
