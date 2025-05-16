@@ -4,5 +4,9 @@ components_by_slot:
     name: heading_1
     properties: {text: '1'}
     type: form:dep_lin1x4oec0ytd:_Components.Heading
+  - layout_properties: {}
+    name: text_1
+    properties: {}
+    type: form:dep_lin1x4oec0ytd:_Components.Text
 is_package: true
 layout: {type: 'form:Layouts.Layout'}
