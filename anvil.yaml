@@ -4,6 +4,9 @@ dependencies:
   dep_id: dep_lin1x4oec0ytd
   resolution_hints: {app_id: 4UK6WHQ6UX7AKELK, name: Material 3 Theme, package_name: m3}
   version: {version_tag: v1.2.4}
+- dep_id: dep_6w450msofb4xem
+  resolution_hints: {app_id: VFUX3U5QW25OL5BR, name: routing, package_name: routing}
+  version: {version_tag: v0.3.5}
 metadata: {description: Play with methods to reduce server calls when navigating}
 name: routing data
 native_deps: null
