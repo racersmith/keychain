@@ -13,3 +13,4 @@ class Form3(Form3Template):
         print(f"Form3: {self.item}")
         cached_time = self.item['form_3']
         self.text_1.text = f"{now} - {cached_time} = {now - cached_time}"
+        self.layout.raise_event('x-refresh')

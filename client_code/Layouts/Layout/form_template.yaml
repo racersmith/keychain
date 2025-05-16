@@ -15,6 +15,11 @@ components_by_slot:
     name: nav_link_3
     properties: {icon: 'mi:counter_3', path: /3, text: ''}
     type: form:dep_q2wel7ztf6yfx:router.NavLink
+  sidesheet:
+  - layout_properties: {}
+    name: cache_display
+    properties: {}
+    type: form:Pages.cache_display
 is_package: true
 layout: {type: 'form:dep_lin1x4oec0ytd:Layouts.NavigationRailLayout'}
 slots:
