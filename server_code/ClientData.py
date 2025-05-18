@@ -2,9 +2,6 @@ import anvil.server
 
 import time
 
-from .routes import RequestData
-
-
 
 def get_form_1_data():
     return time.time()
@@ -17,7 +14,7 @@ def get_form_3_data():
 
 
 REQUEST_MAP = {
-    RequestData.form_1.name: get_form_1_data,
+    'form_1': get_form_1_data,
     "form_2": get_form_2_data,
     "form_3": get_form_3_data,
 }
@@ -29,11 +26,11 @@ def request(*args, **kwargs):
     Easier to secure a single endpoint and allows for batched server calls
     """
     
-    print(f"Requesting data for {kwargs.keys()}")
+    print(f"Requesting data for {list(kwargs.keys())}")
     update = {key: REQUEST_MAP[key]() for key in kwargs.keys() if key in REQUEST_MAP}
 
     invalid_keys = kwargs.keys() - update.keys()
     if invalid_keys:
-        print(f"No matching function for keys: {invalid_keys}")
+        print(f"No matching function for keys: {list(invalid_keys)}")
     return update
     
