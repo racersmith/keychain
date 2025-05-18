@@ -1,7 +1,15 @@
 from routing.router import Route, Redirect
 import anvil.server
 
+from enum import Enum, auto
+
 _GLOBAL_CACHE = dict()
+
+
+class RequestData(Enum):
+    form_1 = auto()
+    form_2 = auto()
+    form_3 = auto()
 
 
 def extract_missing(data: dict, missing_value=None):

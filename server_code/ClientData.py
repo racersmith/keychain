@@ -2,6 +2,10 @@ import anvil.server
 
 import time
 
+from .routes import RequestData
+
+
+
 def get_form_1_data():
     return time.time()
 
@@ -13,7 +17,7 @@ def get_form_3_data():
 
 
 REQUEST_MAP = {
-    "form_1": get_form_1_data,
+    RequestData.form_1.name: get_form_1_data,
     "form_2": get_form_2_data,
     "form_3": get_form_3_data,
 }
