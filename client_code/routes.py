@@ -31,6 +31,7 @@ class Form2Route(AutoLoad):
     strict = False
     required_fields = ["form_2", "invalid_data_key", "context"]
 
+
 class Form3Route(AutoLoad):
     path = "/3"
     form = "Pages.Form3"
