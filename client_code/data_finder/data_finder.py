@@ -2,10 +2,8 @@ import anvil.server
 
 from routing.router import _route
 
-
 MISSING_VALUE = None
-_GLOBAL_CACHE = dict()
-
+_GLOBAL_CACHE = None
 
 def find_global_fields(missing_value=MISSING_VALUE):
     """ Find data fields that are reused between routes. """

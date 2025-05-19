@@ -3,18 +3,22 @@ components_by_slot:
   - data_bindings: []
     layout_properties: {}
     name: nav_link_1
-    properties: {icon: 'mi:counter_1', path: /1, text: ''}
+    properties: {icon: 'mi:home', path: /home, text: Home}
     type: form:dep_q2wel7ztf6yfx:router.NavLink
   - data_bindings: []
     layout_properties: {}
     name: nav_link_2
-    properties: {icon: 'mi:counter_2', path: /2, text: ''}
+    properties: {icon: 'mi:person', path: /account, text: Account}
     type: form:dep_q2wel7ztf6yfx:router.NavLink
   - data_bindings: []
     layout_properties: {}
     name: nav_link_3
-    properties: {icon: 'mi:counter_3', path: /3, text: ''}
+    properties: {icon: 'mi:privacy_tip', path: /private, text: Private}
     type: form:dep_q2wel7ztf6yfx:router.NavLink
+  - layout_properties: {}
+    name: nav_link_4
+    properties: {icon: 'mi:lock', path: /protected, text: Protected}
+    type: form:dep_capuawajr8465t:router.NavLink
   sidesheet:
   - layout_properties: {}
     name: cache_display

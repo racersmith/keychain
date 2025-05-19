@@ -16,6 +16,5 @@ class cache_display(cache_displayTemplate):
             lines.append(f"{key}:\n{json.dumps(value.data, indent=4)}\n")
 
         lines.append("==Global Cache==")
-        for key, value in _GLOBAL_CACHE.items():
-            lines.append(f"{key}: {value}\n")
+        lines.append(json.dumps(_GLOBAL_CACHE, indent=4))
         self.text_1.text = "\n".join(lines)
