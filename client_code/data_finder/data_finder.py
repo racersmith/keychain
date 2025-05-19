@@ -78,4 +78,7 @@ def fetch(
                 f"unable to fetch all requested data: {list(missing.keys())}"
             )
 
+        # Only return keys that were explicitly asked for
+        data = {key: data[key] for key in required_fields}
+
     return data

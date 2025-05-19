@@ -7,6 +7,13 @@ import time
 REQUEST_MAP = dict()
 MISSING_VALUE = None
 
+
+class Flatten:
+    """ Flatten the given data into the response """
+    def __init__(self, **data):
+        self.data = data
+
+
 def register_data_request(field: str|list, permission=None, quiet=False):
     """ Register a function for a data field """
     # Register new fields or raise an error if we are trying to write over an existing
@@ -27,7 +34,7 @@ def register_data_request(field: str|list, permission=None, quiet=False):
             if quiet:
                 # Quietly return just None
                 return MISSING_VALUE
-            raise PermissionError()
+            raise PermissionError("Access denied")
 
 
         for key in field:
@@ -43,8 +50,14 @@ def request(data_request: dict, **loader_args):
     """ Single point of access for all client data needs
     Easier to secure a single endpoint and allows for batched server calls
     """
-
-    update = {key: REQUEST_MAP[key](**loader_args) for key in data_request.keys() if key in REQUEST_MAP}
+    update = dict()
+    for key in data_request.keys():
+        value = REQUEST_MAP[key](**loader_args)
+        if isinstance(value, Flatten):
+            update.update(value.data)
+        else:
+            update[key] = value
+    
 
     invalid_keys = data_request.keys() - update.keys()
     if invalid_keys:
@@ -67,9 +80,17 @@ def get_the_question(*args, **loader_args):
     # raise LookupError('The question remains unknown')
     raise LookupError("The question remains unknown.")
 
-@register_data_request(field='name')
-def get_account_name(*args, **loader_args):
-    return "Arthur"
+@register_data_request(field=['account', 'name', 'email', 'phone'])
+def get_account_data(*args, **loader_args):
+    """ Allow multiple fields to resolve to the same function for use cases like this.
+    Here I'm using the Flatten marker that will then be flattened in the data reponse.
+    This might be a complication that without much benefit.
+    This could be interesting if we namespaced keys...
+    ie.
+        'account' -> {'name': name, 'email': email, 'phone': phone}
+        'account.email' -> email
+    """
+    return Flatten(name='Arther', email='arther@galaxyguides.com', phone='987-654-3210')
 
 @register_data_request(field='first_load')
 def get_time(*args, **loader_args):
