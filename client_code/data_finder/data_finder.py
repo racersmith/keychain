@@ -1,25 +1,26 @@
 import anvil.server
 
 from routing.router import _route
-from .. import routes
+
 
 MISSING_VALUE = None
+_GLOBAL_CACHE = dict()
 
-def find_global_fields(missing_value=None):
+
+def find_global_fields(missing_value=MISSING_VALUE):
+    """ Find data fields that are reused between routes. """
     all_fields = set()
     reused_fields = set()
 
     for route in _route.sorted_routes:
         if hasattr(route, "required_fields"):
-            reused_fields.update(route.required_fields.union(all_fields))
+            repeats = set(route.required_fields).intersection(all_fields)
+            reused_fields.update(repeats)
             all_fields.update(route.required_fields)
-    print(all_fields)
-    print(reused_fields)
-    return dict.fromkeys(reused_fields, missing_value)
 
-global _GLOBAL_CACHE 
-_GLOBAL_CACHE = find_global_fields(MISSING_VALUE)
-
+    global _GLOBAL_CACHE
+    _GLOBAL_CACHE = dict.fromkeys(reused_fields, missing_value)
+    
 
 def extract_missing(data: dict, missing_value=None):
     """Get the sub-dict that contains missing values"""
@@ -42,11 +43,11 @@ def update_missing_from_global(data: dict, missing_value):
     return update_missing_from_dict(data, _GLOBAL_CACHE, missing_value)
 
 
-def update_missing_from_request(data: dict, missing_value):
+def update_missing_from_request(data: dict, loader_args, missing_value):
     """Request missing data from the server"""
-    missing = extract_missing(data)
-    if missing:
-        data.update(anvil.server.call_s("request", **missing))
+    data_request = extract_missing(data)
+    if data_request:
+        data.update(anvil.server.call_s("request", data_request, **loader_args))
     return data
 
 
@@ -57,22 +58,19 @@ def key_list_to_dict(keys: list, missing_value):
 
 def fetch(
     loader_args: dict,
-    local_data: list = None,
-    global_data: list = None,
+    required_fields: list = None,
     strict: bool = True,
     missing_value=None,
 ):
-    local_data = key_list_to_dict(local_data, missing_value)
-    global_data = key_list_to_dict(global_data, missing_value)
-    data = dict(**local_data, **global_data)
-
+    
+    data = key_list_to_dict(required_fields, missing_value)
     data = update_missing_from_dict(data, loader_args["nav_context"], missing_value)
     data = update_missing_from_global(data, missing_value)
-    data = update_missing_from_request(data, missing_value)
+    data = update_missing_from_request(data, loader_args, missing_value)
 
     # Store the requested global data
+    global _GLOBAL_CACHE
     _GLOBAL_CACHE = update_missing_from_dict(_GLOBAL_CACHE, data, missing_value)
-    _GLOBAL_CACHE.update(update_missing_from_dict(global_data, data, missing_value))
 
     if strict:
         # Strictly enforce that all data must be filled

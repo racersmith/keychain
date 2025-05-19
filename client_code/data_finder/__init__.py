@@ -1,1 +1,1 @@
-from .data_finder import fetch
+from .data_finder import fetch, find_global_fields
