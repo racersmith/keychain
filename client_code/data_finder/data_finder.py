@@ -61,13 +61,12 @@ def fetch(
     strict: bool = True,
     missing_value=None,
 ):
-    print(loader_args)
     data = key_list_to_dict(required_fields, missing_value)
     data = update_missing_from_dict(data, loader_args["nav_context"], missing_value)
     data = update_missing_from_global(data, missing_value)
     data = update_missing_from_request(data, loader_args, missing_value)
 
-    # Store the requested global data
+    # with the data we we have, fill any missing values in global cache
     global _GLOBAL_CACHE
     _GLOBAL_CACHE = update_missing_from_dict(_GLOBAL_CACHE, data, missing_value)
 

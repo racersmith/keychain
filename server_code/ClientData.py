@@ -2,9 +2,10 @@ import anvil.server
 from functools import partial
 import time
 
+
+""" This would be part of routing """
 REQUEST_MAP = dict()
 MISSING_VALUE = None
-
 
 def register_data_request(field: str|list, permission=None, quiet=False):
     """ Register a function for a data field """
@@ -50,6 +51,8 @@ def request(data_request: dict, **loader_args):
         print(f"No matching function for keys: {list(invalid_keys)}")
     return update
 
+
+""" This would be user implemented """
 
 def admin_check():
     # just for demo's sake something to validate the user request
