@@ -1,19 +1,20 @@
 import anvil.server
 
 from routing.router import _route
-
+from .. import routes
 
 MISSING_VALUE = None
 
 def find_global_fields(missing_value=None):
     all_fields = set()
     reused_fields = set()
-    
+
     for route in _route.sorted_routes:
         if hasattr(route, "required_fields"):
             reused_fields.update(route.required_fields.union(all_fields))
             all_fields.update(route.required_fields)
-
+    print(all_fields)
+    print(reused_fields)
     return dict.fromkeys(reused_fields, missing_value)
 
 global _GLOBAL_CACHE 
