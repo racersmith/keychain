@@ -43,7 +43,6 @@ def request(data_request: dict, **loader_args):
     Easier to secure a single endpoint and allows for batched server calls
     """
 
-    print(f"Requesting data for {list(data_request.keys())}")
     update = {key: REQUEST_MAP[key](**loader_args) for key in data_request.keys() if key in REQUEST_MAP}
 
     invalid_keys = data_request.keys() - update.keys()
@@ -67,7 +66,6 @@ def get_the_question(*args, **loader_args):
 
 @register_data_request(field='name')
 def get_account_name(*args, **loader_args):
-    # raise LookupError('The question remains unknown')
     return "Arthur"
 
 @register_data_request(field='first_load')
@@ -81,3 +79,7 @@ def get_private_data(*args, **loader_args):
 @register_data_request(field='something_secret', permission=admin_check, quiet=False)
 def get_secret_data(*args, **loader_args):
     return "Secret Data from server"
+
+@register_data_request(field='private_value')
+def get_private_value(*args, **loader_args):
+    return f"Private Value:{3*str(loader_args['params'].get('private_id'))}"

@@ -5,8 +5,9 @@ from routing.router import _route
 MISSING_VALUE = None
 _GLOBAL_CACHE = None
 
+
 def find_global_fields(missing_value=MISSING_VALUE):
-    """ Find data fields that are reused between routes. """
+    """Find data fields that are reused between routes."""
     all_fields = set()
     reused_fields = set()
 
@@ -18,7 +19,7 @@ def find_global_fields(missing_value=MISSING_VALUE):
 
     global _GLOBAL_CACHE
     _GLOBAL_CACHE = dict.fromkeys(reused_fields, missing_value)
-    
+
 
 def extract_missing(data: dict, missing_value=None):
     """Get the sub-dict that contains missing values"""
@@ -60,7 +61,7 @@ def fetch(
     strict: bool = True,
     missing_value=None,
 ):
-    
+    print(loader_args)
     data = key_list_to_dict(required_fields, missing_value)
     data = update_missing_from_dict(data, loader_args["nav_context"], missing_value)
     data = update_missing_from_global(data, missing_value)

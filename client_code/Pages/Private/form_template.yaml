@@ -8,5 +8,25 @@ components_by_slot:
     name: form_data_display_1
     properties: {}
     type: form:Pages.form_data_display
+  - layout_properties: {}
+    name: rich_text_1
+    properties: {align: center, content: 'Navigate to /private/:private_id'}
+    type: RichText
+  - components:
+    - name: nav_link_1
+      properties: {icon: 'mi:counter_1', path: /private/1, text: ''}
+      type: form:dep_capuawajr8465t:router.NavLink
+    - layout_properties: {}
+      name: nav_link_1_copy
+      properties: {icon: 'mi:counter_2', path: /private/2, text: ''}
+      type: form:dep_capuawajr8465t:router.NavLink
+    - layout_properties: {}
+      name: nav_link_1_copy_2
+      properties: {icon: 'mi:counter_3', path: /private/3, text: ''}
+      type: form:dep_capuawajr8465t:router.NavLink
+    layout_properties: {}
+    name: flow_panel_1
+    properties: {align: center}
+    type: FlowPanel
 is_package: true
 layout: {type: 'form:Layouts.Layout'}

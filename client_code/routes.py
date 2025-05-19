@@ -32,11 +32,19 @@ class AccountRoute(AutoLoad):
     required_fields = ["first_load", "the answer to the life", "name"]
 
 
+class PrivateIdRoute(AutoLoad):
+    path = "/private/:private_id"
+    form = "Pages.Private"
+    strict = False
+    required_fields = ["first_load", "the answer to the universe", "the answer to the life", "something_private", "private_value"]
+    
+
 class PrivateRoute(AutoLoad):
     path = "/private"
     form = "Pages.Private"
     strict = False
     required_fields = ["first_load", "the answer to the universe", "the answer to the life", "something_private"]
+
 
 class ProtectedRoute(AutoLoad):
     path = "/protected"
