@@ -1,7 +1,23 @@
 import anvil.server
 
+from routing.router import _route
 
-_GLOBAL_CACHE = dict()
+
+MISSING_VALUE = None
+
+def find_global_fields(missing_value=None):
+    all_fields = set()
+    reused_fields = set()
+    
+    for route in _route.sorted_routes:
+        if hasattr(route, "required_fields"):
+            reused_fields.update(route.required_fields.union(all_fields))
+            all_fields.update(route.required_fields)
+
+    return dict.fromkeys(reused_fields, missing_value)
+
+global _GLOBAL_CACHE 
+_GLOBAL_CACHE = find_global_fields(MISSING_VALUE)
 
 
 def extract_missing(data: dict, missing_value=None):
@@ -54,6 +70,7 @@ def fetch(
     data = update_missing_from_request(data, missing_value)
 
     # Store the requested global data
+    _GLOBAL_CACHE = update_missing_from_dict(_GLOBAL_CACHE, data, missing_value)
     _GLOBAL_CACHE.update(update_missing_from_dict(global_data, data, missing_value))
 
     if strict:
