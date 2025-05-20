@@ -8,13 +8,14 @@ MISSING_VALUE = None
 
 
 class Flatten:
-    """ Flatten the given data into the response """
+    """Flatten the given data into the response"""
+
     def __init__(self, **data):
         self.data = data
 
 
-def register_data_request(field: str|list, permission=None, quiet=False):
-    """ Register a function for a data field """
+def register_data_request(field: str | list, permission=None, quiet=False):
+    """Register a function for a data field"""
     # Register new fields or raise an error if we are trying to write over an existing
     if isinstance(field, str):
         field = [field]
@@ -35,7 +36,6 @@ def register_data_request(field: str|list, permission=None, quiet=False):
                 return MISSING_VALUE
             raise PermissionError("Access denied")
 
-
         for key in field:
             REQUEST_MAP[key] = partial(wrapper, func, permission, quiet)
 
@@ -45,20 +45,19 @@ def register_data_request(field: str|list, permission=None, quiet=False):
 
 
 @anvil.server.callable
-def request(data_request: dict, **loader_args):
-    """ Single point of access for all client data needs
+def request(fields_requested: list, **loader_args):
+    """Single point of access for all client data needs
     Easier to secure a single endpoint and allows for batched server calls
     """
     update = dict()
-    for key in data_request.keys():
+    for key in fields_requested:
         value = REQUEST_MAP[key](**loader_args)
         if isinstance(value, Flatten):
             update.update(value.data)
         else:
             update[key] = value
 
-
-    invalid_keys = data_request.keys() - update.keys()
+    invalid_keys = set(fields_requested) - update.keys()
     if invalid_keys:
         print(f"No matching function for keys: {list(invalid_keys)}")
     return update

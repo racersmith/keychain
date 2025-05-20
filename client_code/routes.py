@@ -27,20 +27,23 @@ class PrivateIdRoute(AutoLoad):
     path = "/private/:private_id"
     form = "Pages.Private"
     strict = False
-    fields = ["first_load", "the answer to the universe", "the answer to life", "something_private", "private_value"]
+    cache_data = False  # just for demo purposes
     
+    global_fields = ["private_{private_id}"]
+    remap_fields = {"private_{private_id}": "private"}
+
 
 class PrivateRoute(AutoLoad):
     path = "/private"
     form = "Pages.Private"
-    strict = False
-    fields = ["first_load", "the answer to the universe", "the answer to life", "something_private"]
+    strict = False    
+    fields = ["name", "something_private"]
 
 
 class ProtectedRoute(AutoLoad):
     path = "/protected"
     form = "Pages.Protected"
-    fields = ["first_load", "the answer to the universe", "the answer to life", "what is the question"]
+    fields = ["what is the question"]
 
 
 # This could be more tightly integrated so this is not needed here...
