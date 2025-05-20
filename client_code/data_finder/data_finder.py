@@ -12,10 +12,23 @@ def find_global_fields(missing_value=MISSING_VALUE):
     reused_fields = set()
 
     for route in _route.sorted_routes:
-        if hasattr(route, "required_fields"):
-            repeats = set(route.required_fields).intersection(all_fields)
+        if hasattr(route, "fields"):
+            # include duplicate fields in global cache
+            fields = route.fields
+            repeats = set(fields).intersection(all_fields)
             reused_fields.update(repeats)
-            all_fields.update(route.required_fields)
+            all_fields.update(fields)
+        
+        if hasattr(route, "global_fields"):
+            # include all fields in global cache
+            global_fields = route.global_fields
+            reused_fields.update(global_fields)
+            all_fields.update(global_fields)
+
+        if hasattr(route, "local_fields"):
+            # exclude fields from global cache
+            local_fields = route.global_fields
+            all_fields.update(local_fields)
 
     global _GLOBAL_CACHE
     _GLOBAL_CACHE = dict.fromkeys(reused_fields, missing_value)
@@ -61,6 +74,7 @@ def fetch(
     strict: bool = True,
     missing_value=None,
 ):
+    print(loader_args)
     data = key_list_to_dict(required_fields, missing_value)
     data = update_missing_from_dict(data, loader_args["nav_context"], missing_value)
     data = update_missing_from_global(data, missing_value)

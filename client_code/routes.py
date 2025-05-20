@@ -13,34 +13,34 @@ class RootRoute(Route):
 class HomeRoute(AutoLoad):
     path = "/home"
     form = "Pages.Home"
-    required_fields = ["first_load", "the answer to everything"]
+    fields = ["first_load", "the answer to everything"]
 
 
 class AccountRoute(AutoLoad):
     path = "/account"
     form = "Pages.Account"
     strict = False
-    required_fields = ["first_load", "the answer to life", "name"]
+    fields = ["first_load", "the answer to life", "name"]
 
 
 class PrivateIdRoute(AutoLoad):
     path = "/private/:private_id"
     form = "Pages.Private"
     strict = False
-    required_fields = ["first_load", "the answer to the universe", "the answer to life", "something_private", "private_value"]
+    fields = ["first_load", "the answer to the universe", "the answer to life", "something_private", "private_value"]
     
 
 class PrivateRoute(AutoLoad):
     path = "/private"
     form = "Pages.Private"
     strict = False
-    required_fields = ["first_load", "the answer to the universe", "the answer to life", "something_private"]
+    fields = ["first_load", "the answer to the universe", "the answer to life", "something_private"]
 
 
 class ProtectedRoute(AutoLoad):
     path = "/protected"
     form = "Pages.Protected"
-    required_fields = ["first_load", "the answer to the universe", "the answer to life", "what is the question"]
+    fields = ["first_load", "the answer to the universe", "the answer to life", "what is the question"]
 
 
 # This could be more tightly integrated so this is not needed here...

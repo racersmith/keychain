@@ -11,3 +11,7 @@ class Home(HomeTemplate):
 
         self.form_data_display_1.item = self.item
         self.layout.raise_event('x-refresh')
+
+    def form_show(self, **event_args):
+        """This method is called when the form is shown on the page"""
+        self.layout.raise_event('x-refresh')

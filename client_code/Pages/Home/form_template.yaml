@@ -10,4 +10,6 @@ components_by_slot:
     properties: {}
     type: form:Pages.form_data_display
 is_package: true
-layout: {type: 'form:Layouts.Layout'}
+layout:
+  form_event_bindings: {show: form_show}
+  type: form:Layouts.Layout
