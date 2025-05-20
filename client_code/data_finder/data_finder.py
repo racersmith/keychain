@@ -74,7 +74,7 @@ def fetch(
         # Strictly enforce that all data must be filled
         missing = extract_missing(data, missing_value)
         if missing:
-            raise ValueError(
+            raise LookupError(
                 f"unable to fetch all requested data: {list(missing.keys())}"
             )
 
