@@ -20,6 +20,7 @@ class Cache(dict):
         if key in self:
             del self[key]
 
+
 def find_global_fields():
     """Find data fields that are reused between routes."""
     all_fields = set()
