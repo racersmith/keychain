@@ -196,7 +196,7 @@ class AutoLoad(Route):
             found.update(anvil.server.call_s("request", missing_keys, **loader_args))
         return found
 
-    def _apply_field_remap(self, data):
+    def _apply_field_remap(self, data: dict):
         return {
             self.remap_fields.get(field, field): value for field, value in data.items()
         }
