@@ -25,6 +25,15 @@ class Cache(dict):
         self.clear()
 
 
+def clear_cache():
+    global _GLOBAL_CACHE
+    _GLOBAL_CACHE.clear()
+
+def invalidate(*keys):
+    for key in keys:
+        _GLOBAL_CACHE.pop(key, None)
+
+
 def find_global_fields():
     """Find data fields that are reused between routes."""
     all_fields = set()
