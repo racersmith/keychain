@@ -1,9 +1,5 @@
 allow_embedding: false
 dependencies:
-- config: {}
-  dep_id: dep_lin1x4oec0ytd
-  resolution_hints: {app_id: 4UK6WHQ6UX7AKELK, name: Material 3 Theme, package_name: m3}
-  version: {version_tag: v1.2.4}
 - dep_id: dep_capuawajr8465t
   resolution_hints: {app_id: 3PIDO5P3H4VPEMPL, name: routing, package_name: routing}
   version: {version_tag: v0.3.5}
