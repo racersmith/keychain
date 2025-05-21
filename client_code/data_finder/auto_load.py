@@ -146,6 +146,8 @@ class AutoLoad(Route):
 
         # Update the global cache
         update_global(data, loader_args, self.missing_value)
+        for key, value in data.items():
+            store_generic_data(key, value)
 
         if self.strict:
             strict_data(fields, data, self.missing_value)
@@ -200,3 +202,39 @@ class AutoLoad(Route):
         return {
             self.remap_fields.get(field, field): value for field, value in data.items()
         }
+
+
+from anvil.history import Location
+from routing.router._loader import CachedData
+from routing.router._cached import CACHED_DATA
+
+
+def store_generic_data(key, data, gc_time=30*60):
+    cache_data = CachedData(
+        data=data,
+        location=None,
+        mode='GENERIC_CACHE',
+        gc_time=30*60
+    )
+    
+    CACHED_DATA[key] = cache_data
+
+
+from routing.router._loader import IN_FLIGHT_DATA, await_promise, Result
+
+def get_generic_data(key):
+    if key in CACHED_DATA:
+        # logger.debug(f"using cached data for {key}")
+        data_promise = Result(CACHED_DATA[key].data)
+    elif key in IN_FLIGHT_DATA:
+        # logger.debug(f"using in flight data for {key}")
+        data_promise = IN_FLIGHT_DATA[key]
+    else:
+        raise LookupError("'{key}' not found in cache")
+        
+
+    data, error = await_promise(data_promise)
+    if error is not None:
+        raise error
+    return data
+    
