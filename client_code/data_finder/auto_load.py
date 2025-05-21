@@ -6,6 +6,20 @@ _GLOBAL_KEYS = set()
 _GLOBAL_CACHE = dict()
 
 
+class Cache(dict):
+    def __init__(self, *args, **kwargs):
+        self._fields = set()
+
+    def has_field(self, field):
+        return field in self._fields
+
+    def update_fields(self, fields: set):
+        self._fields.update(fields)
+
+    def invalidate(self, key: str):
+        if key in self:
+            del self[key]
+
 def find_global_fields():
     """Find data fields that are reused between routes."""
     all_fields = set()
@@ -120,9 +134,9 @@ class AutoLoad(Route):
 
     def _auto_load(self, **loader_args):
         """Step through the resources to find the requested data fields
-        1. Look for fields in loader_args['nav_context']
-        2. Look for fields in global cache
-        3. Finally, request the data from the server
+            1. Look for fields in loader_args['nav_context']
+            2. Look for fields in global cache
+            3. Finally, request the data from the server
         """
         print("Auto Load")
         print("loader_args")
@@ -196,7 +210,7 @@ class AutoLoad(Route):
             found.update(anvil.server.call_s("request", missing_keys, **loader_args))
         return found
 
-    def _apply_field_remap(self, data):
+    def _apply_field_remap(self, data: dict):
         return {
             self.remap_fields.get(field, field): value for field, value in data.items()
         }
