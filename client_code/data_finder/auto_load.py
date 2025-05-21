@@ -23,7 +23,6 @@ def find_global_fields():
             # include all fields in global cache
             global_fields = route.global_fields
             reused_fields.update(global_fields)
-            all_fields.update(global_fields)
 
     global _GLOBAL_KEYS
     _GLOBAL_KEYS = reused_fields
