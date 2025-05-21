@@ -2,19 +2,21 @@ import anvil.server
 from functools import partial
 
 
-""" This would be part of routing """
 REQUEST_MAP = dict()
-MISSING_VALUE = None
+
+
+def set_request_auth_fn(fn):
+    global REQUEST_AUTH_FN
+    REQUEST_AUTH_FN = fn
 
 
 class Flatten:
     """Flatten the given data into the response"""
-
     def __init__(self, **data):
         self.data = data
 
 
-def register_data_request(field: str | list, permission=None, quiet=False):
+def register_data_request(field: str | list, permission=None, quiet=False, missing_value=None):
     """Register a function for a data field"""
     # Register new fields or raise an error if we are trying to write over an existing
     if isinstance(field, str):
@@ -33,7 +35,7 @@ def register_data_request(field: str | list, permission=None, quiet=False):
             # We don't have permission
             if quiet:
                 # Quietly return just None
-                return MISSING_VALUE
+                return missing_value
             raise PermissionError("Access denied")
 
         for key in field:
@@ -45,7 +47,7 @@ def register_data_request(field: str | list, permission=None, quiet=False):
 
 
 @anvil.server.callable
-def request(fields_requested: list, **loader_args):
+def _routing_data_request(fields_requested: list, **loader_args):
     """Single point of access for all client data needs
     Easier to secure a single endpoint and allows for batched server calls
     """
