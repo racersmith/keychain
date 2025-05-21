@@ -6,6 +6,20 @@ _GLOBAL_KEYS = set()
 _GLOBAL_CACHE = dict()
 
 
+class Cache(dict):
+    def __init__(self, *args, **kwargs):
+        self._fields = set()
+
+    def has_field(self, field):
+        return field in self._fields
+
+    def update_fields(self, fields: set):
+        self._fields.update(fields)
+
+    def invalidate(self, key: str):
+        if key in self:
+            del self[key]
+
 def find_global_fields():
     """Find data fields that are reused between routes."""
     all_fields = set()
