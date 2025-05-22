@@ -204,7 +204,6 @@ class AutoLoad(Route):
             for field in data.keys():
                 # look in global cache using param populated key: account_123 not the field: account_{id}
                 key = evaluate_field(field, loader_args)
-                print(key)
 
                 # store the value using the field
                 value = _GLOBAL_CACHE.get(key, self.missing_value)
