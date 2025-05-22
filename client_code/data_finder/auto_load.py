@@ -152,10 +152,6 @@ class AutoLoad(Route):
             2. Look for fields in global cache
             3. Finally, request the data from the server
         """
-        print("Auto Load")
-        print("loader_args")
-        import json
-        print(json.dumps(loader_args, indent=4))
         
         fields = self._get_all_fields()
         data = key_list_to_dict(fields, self.missing_value)
