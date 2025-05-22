@@ -54,12 +54,14 @@ def _routing_data_request(fields_requested: list, **loader_args):
     update = dict()
     for key in fields_requested:
         # Don't repeat a call if the data is already in update
-        if key not in update :
-            value = REQUEST_MAP[key](**loader_args)
-            if isinstance(value, Flatten):
-                update.update(value.data)
-            else:
-                update[key] = value
+        if key not in update:
+            fn = REQUEST_MAP.get(key, None)
+            if fn:
+                value = fn(**loader_args)
+                if isinstance(value, Flatten):
+                    update.update(value.data)
+                else:
+                    update[key] = value
 
     invalid_keys = set(fields_requested) - update.keys()
     if invalid_keys:
