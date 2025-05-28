@@ -69,6 +69,7 @@ def evaluate_field(field: str, loader_args: dict):
 
 
 def update_global(data: dict, loader_args: dict, missing_value):
+    """ Update our local global cache """
     global _GLOBAL_CACHE
 
     for field, value in data.items():
@@ -87,13 +88,18 @@ def key_list_to_dict(keys: list, missing_value):
 
 
 def strict_data(fields: list, data: dict, missing_value) -> dict:
-    # Strictly enforce that all data must be filled
-    missing_keys = get_missing_keys(data, missing_value)
-    if missing_keys:
-        raise LookupError(f"unable to fetch all requested data: {missing_keys}")
+    """ Raise an error if any field is missing data """
+    missing_data_fields = list()
+    for field in fields:
+        if data.get(field, missing_value) == missing_value:
+            missing_data_fields.append(field)
 
-    # Only return keys that were explicitly asked for
-    return {key: data[key] for key in fields}
+    if missing_data_fields:
+        raise LookupError(f"unable to fetch all requested data: {missing_data_fields}")
+        
+
+def restrict_to_requested(fields: list, data: dict) -> dict:
+    return {field: data[field] for field in fields}
 
 
 class AutoLoad(Route):
@@ -126,6 +132,10 @@ class AutoLoad(Route):
         bool, should we raise an error if there are values that can not be found or just fill them with None
         strict will also limit the return keys to strictly those listed in required_fields.
 
+    restrict_fields:
+        bool, when true, only the fields that were requested will be returned.
+        Otherwise, allow additional fields to be added
+
     missing_value:
         What should be used to indicate a missing value. Searching continues until the value is found.
         When the value could not be found, the missing value will be given unless flagged strict
@@ -141,6 +151,7 @@ class AutoLoad(Route):
     remap_fields = dict()
 
     strict = True
+    restrict_fields = False
     missing_value = None
 
     def load_data(self, **loader_args) -> dict:
@@ -174,9 +185,16 @@ class AutoLoad(Route):
         if self.strict:
             strict_data(fields, data, self.missing_value)
 
+        if self.restrict_fields:
+            data = restrict_to_requested(fields, data)
+
         return self._apply_field_remap(data)
 
-    def _get_all_fields(self):
+    def _get_output_keys(self) -> list:
+        fields = self._get_all_fields()
+        return [self.remap_fields.get(field, field) for field in fields]
+    
+    def _get_all_fields(self) -> list:
         return self.fields + self.global_fields + self.local_fields
 
     def _load_from_nav_context(self, data: dict, loader_args: dict) -> dict:
