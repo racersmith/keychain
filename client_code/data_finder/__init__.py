@@ -1,1 +1,1 @@
-from .auto_load import AutoLoad, find_global_fields, clear_cache, invalidate
+from .auto_load import AutoLoad, initialize_cache, clear_cache, invalidate
