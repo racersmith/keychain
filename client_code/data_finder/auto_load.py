@@ -34,7 +34,7 @@ def invalidate(*keys):
         _GLOBAL_CACHE.pop(key, None)
 
 
-def find_global_fields():
+def initialize_cache():
     """Find data fields that are reused between routes."""
     all_fields = set()
     reused_fields = set()
