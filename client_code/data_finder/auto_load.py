@@ -234,7 +234,7 @@ class AutoLoad(Route):
         found = dict()
 
         if missing_keys:
-            found.update(anvil.server.call_s("_routing_data_request", missing_keys, **loader_args))
+            found.update(anvil.server.call_s("_routing_auto_data_request", missing_keys, **loader_args))
         return found
 
     def _apply_field_remap(self, data: dict):
