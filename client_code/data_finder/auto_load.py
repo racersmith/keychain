@@ -1,6 +1,6 @@
 import anvil.server
-from routing.router import _route, Route
-
+from routing.router import _route, Route, navigate
+from . import errors
 
 _GLOBAL_KEYS = set()
 _GLOBAL_CACHE = dict()
@@ -29,6 +29,7 @@ def clear_cache():
     global _GLOBAL_CACHE
     _GLOBAL_CACHE.clear()
 
+
 def invalidate(*keys):
     for key in keys:
         _GLOBAL_CACHE.pop(key, None)
@@ -49,8 +50,7 @@ def initialize_cache():
 
         if hasattr(route, "global_fields"):
             # include all fields in global cache
-            global_fields = route.global_fields
-            reused_fields.update(global_fields)
+            reused_fields.update(route.global_fields)
 
     global _GLOBAL_KEYS
     _GLOBAL_KEYS = reused_fields
@@ -74,6 +74,7 @@ def update_global(data: dict, loader_args: dict, missing_value):
 
     for field, value in data.items():
         key = evaluate_field(field, loader_args)
+        # Cache expected values the first time we see them
         if (
             value is not missing_value
             and field in _GLOBAL_KEYS
@@ -153,6 +154,7 @@ class AutoLoad(Route):
     strict = True
     restrict_fields = False
     missing_value = None
+    permission_error_path = None
 
     def load_data(self, **loader_args) -> dict:
         return self._auto_load(**loader_args)
@@ -176,7 +178,7 @@ class AutoLoad(Route):
         data.update(found_in_global)
 
         found_from_server = self._load_from_server(data, loader_args)
-        # print("found_from_server", found_from_server)
+        print("found_from_server", found_from_server)
         data.update(found_from_server)
 
         # Update the global cache
@@ -234,7 +236,14 @@ class AutoLoad(Route):
         found = dict()
 
         if missing_keys:
-            found.update(anvil.server.call_s("_routing_auto_data_request", missing_keys, **loader_args))
+            try:
+                found.update(anvil.server.call_s("_routing_auto_data_request", missing_keys, **loader_args))
+            except anvil.server.AnvilWrappedError as e:
+                if e.message == errors.AccessDenied.message and self.permission_error_path is not None:
+                    navigate(path=self.permission_error_path, nav_context=loader_args['nav_context'])
+                else:
+                    raise e
+
         return found
 
     def _apply_field_remap(self, data: dict):
