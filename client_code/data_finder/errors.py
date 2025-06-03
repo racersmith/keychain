@@ -2,9 +2,6 @@ from anvil.server import AnvilWrappedError, _register_exception_type
 
 class AccessDenied(AnvilWrappedError):
     None
-    # message = "Access Denied"
-    # def __init__(self):
-    #     super().__init__(self.message)
 
 
 class AlreadyRegistered(AnvilWrappedError):

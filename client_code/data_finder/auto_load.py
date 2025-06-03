@@ -1,72 +1,13 @@
 import anvil.server
-from routing.router import _route, Route, navigate
+from routing.router import Route, navigate
 from . import errors
 
-from routing.router._cached import CACHED_DATA
-from routing.router._loader import CachedData
-from routing.router._constants import NO_CACHE
-from anvil.history import Location
-
-_GLOBAL_KEYS = set()
-_GLOBAL_CACHE = dict()
-
-
-def clear_cache():
-    global _GLOBAL_CACHE
-    _GLOBAL_CACHE.clear()
-
-
-def invalidate(*keys):
-    for key in keys:
-        _GLOBAL_CACHE.pop(key, None)
-
-
-def initialize_cache():
-    """Find data fields that are reused between routes."""
-    all_fields = set()
-    reused_fields = set()
-
-    for route in _route.sorted_routes:
-        if hasattr(route, "fields"):
-            # include duplicate fields in global cache
-            fields = route.fields
-            repeats = set(fields).intersection(all_fields)
-            reused_fields.update(repeats)
-            all_fields.update(fields)
-
-        if hasattr(route, "global_fields"):
-            # include all fields in global cache
-            reused_fields.update(route.global_fields)
-
-    global _GLOBAL_KEYS
-    _GLOBAL_KEYS = reused_fields
+from . import cache
 
 
 def get_missing_keys(data: dict, missing_value) -> list:
     """Get the sub-dict that contains missing values"""
     return [key for key, value in data.items() if value == missing_value]
-
-
-def evaluate_field(field: str, loader_args: dict):
-    """Add the params to the field
-    'account_{account_id}' -> 'account_1234'
-    """
-    return field.format(**loader_args["params"])
-
-
-def update_global(data: dict, loader_args: dict, missing_value):
-    """ Update our local global cache """
-    global _GLOBAL_CACHE
-
-    for field, value in data.items():
-        key = evaluate_field(field, loader_args)
-        # Cache expected values the first time we see them
-        if (
-            value is not missing_value
-            and field in _GLOBAL_KEYS
-            and key not in _GLOBAL_CACHE
-        ):
-            _GLOBAL_CACHE[key] = value
 
 
 def key_list_to_dict(keys: list, missing_value):
@@ -156,11 +97,11 @@ class AutoLoad(Route):
         data = key_list_to_dict(fields, self.missing_value)
 
         found_in_nav = self._load_from_nav_context(data, loader_args)
-        # print("found_in_nav", found_in_nav)
+        print("found_in_nav", found_in_nav)
         data.update(found_in_nav)
 
         found_in_global = self._load_from_global_cache(data, loader_args)
-        # print("found_in_global", found_in_global)
+        print("found_in_global", found_in_global)
         data.update(found_in_global)
 
         found_from_server = self._load_from_server(data, loader_args)
@@ -168,7 +109,7 @@ class AutoLoad(Route):
         data.update(found_from_server)
 
         # Update the global cache
-        update_global(data, loader_args, self.missing_value)
+        cache.update_global(data, loader_args, self.missing_value)
 
         if self.strict:
             strict_data(fields, data, self.missing_value)
@@ -235,9 +176,3 @@ class AutoLoad(Route):
             self.remap_fields.get(field, field): value for field, value in data.items()
         }
 
-
-def set_cache_value(key: str, data):
-    gc_time = 30 * 60
-    location = Location(path='__routing_data', search=None, key="default")
-    cached_data = CachedData(data=data, location=location, mode=NO_CACHE, gc_time=gc_time)
-    CACHED_DATA[key] = cached_data
