@@ -38,7 +38,8 @@ def register_data_request(field: str | list, permission=None, quiet=False, missi
             if quiet:
                 # Quietly return just None
                 return missing_value
-                
+
+            print(f"Access Denied: {func.__name__}")
             raise errors.AccessDenied()
 
         for key in field:

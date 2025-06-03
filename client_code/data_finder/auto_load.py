@@ -238,11 +238,9 @@ class AutoLoad(Route):
         if missing_keys:
             try:
                 found.update(anvil.server.call_s("_routing_auto_data_request", missing_keys, **loader_args))
-            except anvil.server.AnvilWrappedError as e:
-                if e.message == errors.AccessDenied.message and self.permission_error_path is not None:
-                    navigate(path=self.permission_error_path, nav_context=loader_args['nav_context'])
-                else:
-                    raise e
+            except errors.AccessDenied as e:
+                navigate(path=self.permission_error_path, nav_context=loader_args['nav_context'])
+
 
         return found
 
