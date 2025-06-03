@@ -2,27 +2,13 @@ import anvil.server
 from routing.router import _route, Route, navigate
 from . import errors
 
+from routing.router._cached import CACHED_DATA
+from routing.router._loader import CachedData
+from routing.router._constants import NO_CACHE
+from anvil.history import Location
+
 _GLOBAL_KEYS = set()
 _GLOBAL_CACHE = dict()
-
-
-class Cache(dict):
-    def __init__(self):
-        self._fields = set()
-
-    def has_field(self, field):
-        return field in self._fields
-
-    def update_fields(self, fields: set):
-        self._fields.update(fields)
-
-    def invalidate(self, *keys: str):
-        for key in keys:
-            if key in self:
-                del self[key]
-
-    def clear_cache(self):
-        self.clear()
 
 
 def clear_cache():
@@ -248,3 +234,10 @@ class AutoLoad(Route):
         return {
             self.remap_fields.get(field, field): value for field, value in data.items()
         }
+
+
+def set_cache_value(key: str, data):
+    gc_time = 30 * 60
+    location = Location(path='__routing_data', search=None, key="default")
+    cached_data = CachedData(data=data, location=location, mode=NO_CACHE, gc_time=gc_time)
+    CACHED_DATA[key] = cached_data
