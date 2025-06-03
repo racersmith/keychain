@@ -1,4 +1,4 @@
-from routing.router_route import sorted_routes
+from routing.router._route import sorted_routes
 
 # Global cache stores
 _DATA = dict()  # Actual key: value cache store  {"account_123": "987"}
@@ -15,7 +15,10 @@ def evaluate_field(field: str, loader_args: dict):
 
 def clear_cache():
     global _DATA
+    global _GROUPS
+    
     _DATA.clear()
+    _GROUPS.clear()
 
 
 def invalidate(*fields_or_keys):
@@ -23,9 +26,8 @@ def invalidate(*fields_or_keys):
     global _GROUPS
     
     for field_or_key in fields_or_keys:
-        for key in _GROUPS.get(field_or_key, {field_or_key, }):
+        for key in _GROUPS.pop(field_or_key, {field_or_key, }):
             _DATA.pop(key, None)
-            _GROUPS[]
 
 
 def initialize_cache():
@@ -49,35 +51,8 @@ def initialize_cache():
     _FIELDS = reused_fields
 
 
-def update_global(data: dict, loader_args: dict, missing_value):
-    """ Update our local global cache """
+def _set(field: str, value, missing_value, loader_args):
     global _DATA
-    global _FIELDS
-    global _GROUPS
-
-    for field, value in data.items():
-        key = evaluate_field(field, loader_args)
-        # Cache expected values the first time we see them
-        if (
-            value is not missing_value
-            and field in _FIELDS
-            and key not in _DATA
-        ):
-            _DATA[key] = value
-            if key != field:
-                key_group = _GROUPS.get(field, set())
-                key_group.add(key)
-                _GROUPS[field] = key_group
-
-
-def get(key: str, missing_value) -> dict:
-    # store the value using the field
-    return _DATA.get(key, missing_value)                
-
-
-def set(field: str, value, missing_value, **loader_args):
-    global _DATA
-    global _FIELDS
     global _GROUPS
 
     key = evaluate_field(field, loader_args)
@@ -92,3 +67,26 @@ def set(field: str, value, missing_value, **loader_args):
             key_group = _GROUPS.get(field, set())
             key_group.add(key)
             _GROUPS[field] = key_group
+
+
+def update(data: dict, missing_value, loader_args):
+    """ Update our local global cache """
+    for field, value in data.items():
+       _set(field, value, missing_value, loader_args)
+
+
+def _get(field: str, missing_value, loader_args) -> dict:
+    key = evaluate_field(field, loader_args)
+    return _DATA.get(key, missing_value)                
+
+
+def load(fields, missing_value, loader_args):
+    found = dict()
+
+    if fields and _DATA:
+        for field in fields:
+            value = _get(field, missing_value, loader_args)
+            if value is not missing_value:
+                found[field] = value
+    return found
+

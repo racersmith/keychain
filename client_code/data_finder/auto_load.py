@@ -1,13 +1,13 @@
 import anvil.server
 from routing.router import Route, navigate
-from . import errors
 
+from . import errors
 from . import cache
 
 
-def get_missing_keys(data: dict, missing_value) -> list:
+def get_missing_fields(data: dict, missing_value) -> list:
     """Get the sub-dict that contains missing values"""
-    return [key for key, value in data.items() if value == missing_value]
+    return [field for field, value in data.items() if value == missing_value]
 
 
 def key_list_to_dict(keys: list, missing_value):
@@ -16,7 +16,7 @@ def key_list_to_dict(keys: list, missing_value):
 
 
 def strict_data(fields: list, data: dict, missing_value) -> dict:
-    """ Raise an error if any field is missing data """
+    """Raise an error if any field is missing data"""
     missing_data_fields = list()
     for field in fields:
         if data.get(field, missing_value) == missing_value:
@@ -24,10 +24,14 @@ def strict_data(fields: list, data: dict, missing_value) -> dict:
 
     if missing_data_fields:
         raise LookupError(f"unable to fetch all requested data: {missing_data_fields}")
-        
+
 
 def restrict_to_requested(fields: list, data: dict) -> dict:
     return {field: data[field] for field in fields}
+
+
+def fetch_from_server(*fields, **loader_args) -> dict:
+    return anvil.server.call_s("_routing_auto_data_request", fields, **loader_args)
 
 
 class AutoLoad(Route):
@@ -88,11 +92,11 @@ class AutoLoad(Route):
 
     def _auto_load(self, **loader_args):
         """Step through the resources to find the requested data fields
-            1. Look for fields in loader_args['nav_context']
-            2. Look for fields in global cache
-            3. Finally, request the data from the server
+        1. Look for fields in loader_args['nav_context']
+        2. Look for fields in global cache
+        3. Finally, request the data from the server
         """
-        
+
         fields = self._get_all_fields()
         data = key_list_to_dict(fields, self.missing_value)
 
@@ -109,7 +113,7 @@ class AutoLoad(Route):
         data.update(found_from_server)
 
         # Update the global cache
-        cache.update_global(data, loader_args, self.missing_value)
+        cache.update(data, self.missing_value, loader_args)
 
         if self.strict:
             strict_data(fields, data, self.missing_value)
@@ -122,13 +126,13 @@ class AutoLoad(Route):
     def _get_output_keys(self) -> list:
         fields = self._get_all_fields()
         return [self.remap_fields.get(field, field) for field in fields]
-    
+
     def _get_all_fields(self) -> list:
         return self.fields + self.global_fields + self.local_fields
 
     def _load_from_nav_context(self, data: dict, loader_args: dict) -> dict:
         """We expect that nav context will use the remapped key"""
-        missing_keys = get_missing_keys(data, self.missing_value)
+        missing_keys = get_missing_fields(data, self.missing_value)
         found = dict()
 
         if missing_keys and loader_args.get("nav_context", False):
@@ -144,30 +148,21 @@ class AutoLoad(Route):
         return found
 
     def _load_from_global_cache(self, data: dict, loader_args: dict) -> dict:
-        missing_keys = get_missing_keys(data, self.missing_value)
-        found = dict()
-
-        if missing_keys and _GLOBAL_CACHE:
-            for field in data.keys():
-                # look in global cache using param populated key: account_123 not the field: account_{id}
-                key = evaluate_field(field, loader_args)
-
-                # store the value using the field
-                value = _GLOBAL_CACHE.get(key, self.missing_value)
-                if value is not self.missing_value:
-                    found[field] = value
-        return found
+        missing_keys = get_missing_fields(data, self.missing_value)
+        return cache.load(missing_keys, self.missing_value, loader_args)
 
     def _load_from_server(self, data: dict, loader_args: dict) -> dict:
-        missing_keys = get_missing_keys(data, self.missing_value)
+        missing_keys = get_missing_fields(data, self.missing_value)
         found = dict()
 
         if missing_keys:
             try:
-                found.update(anvil.server.call_s("_routing_auto_data_request", missing_keys, **loader_args))
-            except errors.AccessDenied as e:
-                navigate(path=self.permission_error_path, nav_context=loader_args['nav_context'])
-
+                found.update(fetch_from_server(*missing_keys, **loader_args))
+            except errors.AccessDenied:
+                navigate(
+                    path=self.permission_error_path,
+                    nav_context=loader_args["nav_context"],
+                )
 
         return found
 
@@ -175,4 +170,3 @@ class AutoLoad(Route):
         return {
             self.remap_fields.get(field, field): value for field, value in data.items()
         }
-
