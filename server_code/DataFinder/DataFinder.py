@@ -1,6 +1,8 @@
 import anvil.server
 from functools import partial
 
+from ..data_finder import errors
+
 
 REQUEST_MAP = dict()
 
@@ -24,7 +26,7 @@ def register_data_request(field: str | list, permission=None, quiet=False, missi
 
     for key in field:
         if key in REQUEST_MAP:
-            raise ValueError(f"'{key}' already has a registred function")
+            raise errors.AlreadyRegistered(key)
 
     def decorator(func):
         def wrapper(func, permission, quiet, *args, **kwargs):
@@ -36,7 +38,9 @@ def register_data_request(field: str | list, permission=None, quiet=False, missi
             if quiet:
                 # Quietly return just None
                 return missing_value
-            raise PermissionError("Access denied")
+
+            print(f"Access Denied: {func.__name__}")
+            raise errors.AccessDenied()
 
         for key in field:
             REQUEST_MAP[key] = partial(wrapper, func, permission, quiet)
@@ -47,7 +51,7 @@ def register_data_request(field: str | list, permission=None, quiet=False, missi
 
 
 @anvil.server.callable
-def _routing_data_request(fields_requested: list, **loader_args):
+def _routing_auto_data_request(fields_requested: list, **loader_args):
     """Single point of access for all client data needs
     Easier to secure a single endpoint and allows for batched server calls
     """
