@@ -1,7 +1,7 @@
 import anvil.server
 from functools import partial
 
-from ..data_finder import errors
+from ..client import errors
 
 
 REQUEST_MAP = dict()
@@ -51,7 +51,7 @@ def register_data_request(field: str | list, permission=None, quiet=False, missi
 
 
 @anvil.server.callable
-def _routing_auto_data_request(fields_requested: list, **loader_args):
+def _keychain_data_request(fields_requested: list, **loader_args):
     """Single point of access for all client data needs
     Easier to secure a single endpoint and allows for batched server calls
     """
