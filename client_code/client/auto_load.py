@@ -31,7 +31,7 @@ def restrict_to_requested(fields: list, data: dict) -> dict:
 
 
 def fetch_from_server(*fields, **loader_args) -> dict:
-    return anvil.server.call_s("_routing_auto_data_request", fields, **loader_args)
+    return anvil.server.call_s("_keychain_data_request", fields, **loader_args)
 
 
 class AutoLoad(Route):
