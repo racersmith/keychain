@@ -72,7 +72,7 @@ def get_the_answer(*args, **loader_args):
     return 42
 
 
-@register_data_request(field=["account", "name", "email", "phone"])
+@register_data_request(field=["name", "email", "phone"])
 def get_account_data(*args, **loader_args):
     """Allow multiple fields to resolve to the same function for use cases like this.
     Here I'm using the Flatten marker that will then be flattened in the data reponse.
@@ -95,16 +95,6 @@ def get_time(*args, **loader_args):
 Each of the fields pages are requesting should have a matching function on the server.  These functions are registered
 by adding `@register_data_request` decorator.  Adding a `permission` to the registration forces a function call before
 the data is accessed.
-
-### routing_context.data
-Now, with the fields the page requires and the function on the server registered, all required data will be available 
-to the form in the routing_context.data as a dict.  So, for instance, the `/home` route will have
-``` python
-routing_context.data = {
-    "first_load": 123456789, 
-    "the answer to everything": 42
-}
-```
 
 The server functions will have the data applied to the key that is requested. So, in this case, `"first_load"` was
 the request field and the resulting dict key not `"server_time"`.
@@ -131,9 +121,82 @@ with Flatten the result is not nested under `"account"`
 ```
 
 
+### /client/Pages.Home
+``` python 
+from ._anvil_designer import HomeTemplate
+from routing import router
+
+
+class Home(HomeTemplate):
+    def __init__(self, routing_context: router.RoutingContext, **properties):
+        self.routing_context = routing_context
+        properties["item"] = routing_context.data
+        self.init_components(**properties)
+```
+
+Using the standard `routing` form boilerplate means that you will have a `self.item` that has a dict with keys that
+align with the defined routes `fields`.
+
+Now, with the fields the page requires and the function on the server registered, all required data will be available 
+to the form in the routing_context.data as a dict.
+
+``` python
+self.item = {
+    "first_load": 123456789, 
+    "the answer to everything": 42,
+}
+```
+
 ## Demo App
 Checkout the demo app for Keychain:
 [Clone in Anvil without keychain clone](https://anvil.works/build#clone:UKCRS4JSFMPBJBAX=GJHMGQFWRORN55FSMRCJRMV6)
 [Clone in Anvil with keychain clone](https://anvil.works/build#clone:UKCRS4JSFMPBJBAX=GJHMGQFWRORN55FSMRCJRMV6|UESVUJKDGQULTT5M=EZQCPFBV2DT3TRODVQX3CG7Z)
 
 
+## Fields vs. Keys
+I make a distinction between the two because of an additional feature within Keychain. Conceptutally, `keys` are used 
+for storage and recall and `fields` are generic keys. In most cases, these are the same.  The examples presented so far
+do not have any difference between the `field` and the `key`
+
+However, if we wanted the ability to retrieve and cache data that is associated with some `id` this is where the 
+distinction becomes useful.
+
+Let's say we have some `"private"` field that is associated with a `private_id=1234`.  We need to be able to request
+`("private", 1234)` and we also need to store a unique instance of `"private"` for this `id`.  Using `fields` you would
+define the `field` as `"private_{private_id}"`.  The field is now generic to the route, but the data can be retrieved 
+and cached using your defined `key` which in this case `"private_1234"`. The attributes are automatically filled from 
+`loader_args["params"]`.  To get the `key` from the `field`, Keychain does a simple string formatting: `key = field.format(**loader_args["params"])`
+So, any number of `params` can be used to create a unique `key` for storage and retrieval. 
+
+``` python
+class PrivateIdRoute(AutoLoad):
+    path = "/private/:private_id"
+    form = "Pages.Private"
+ 
+    fields = ["private_{private_id}"]
+```
+
+Here we use the `path` attributes within the `field`.  Now, there is a slight annoyance with this.  The `self.item`
+would have the key `"private_{private_id}"`.  When using `nav_context` to send data during navigation you would also 
+need to use this key.  However, you can remap keys to simplify this case:
+
+### client/routes.py
+``` python
+class PrivateIdRoute(AutoLoad):
+    path = "/private/:private_id"
+    form = "Pages.Private"
+   
+    global_fields = ["private_{private_id}"]
+    remap_fields = {
+        "private_{private_id}": "private",
+    }
+```
+
+Server functions are registered using the `field="private_{private_id}"` and you have access to `loader_args`.
+
+### server/client_data.py
+``` python
+@register_data_request(field="private_{private_id}")
+def get_private_value(*args, **loader_args):
+    return f"Private Value:{3 * str(loader_args['params'].get('private_id'))}"
+```
