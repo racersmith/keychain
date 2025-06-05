@@ -154,21 +154,24 @@ Checkout the demo app for Keychain:
 
 
 ## Fields vs. Keys
-I make a distinction between the two because of an additional feature within Keychain. Conceptutally, `keys` are used 
-for storage and recall and `fields` are generic keys. In most cases, these are the same.  The examples presented so far
-do not have any difference between the `field` and the `key`
+I make a distinction between the two because of an additional feature within Keychain. Conceptually, `keys` are used 
+for storage and retrieval and `fields` are key templates. In most cases, these are the same.  The examples presented so 
+far do not have any difference between the `field` and the `key`
 
 However, if we wanted the ability to retrieve and cache data that is associated with some `id` this is where the 
 distinction becomes useful.
 
 Let's say we have some `"private"` field that is associated with a `private_id=1234`.  We need to be able to request
-`("private", 1234)` and we also need to store a unique instance of `"private"` for this `id`.  Using `fields` you would
-define the `field` as `"private_{private_id}"`.  The field is now generic to the route, but the data can be retrieved 
-and cached using your defined `key` which in this case `"private_1234"`. The attributes are automatically filled from 
-`loader_args["params"]`.  To get the `key` from the `field`, Keychain does a simple string formatting: `key = field.format(**loader_args["params"])`
+`("private", 1234)` and we also need to store a unique instance of `"private"` for this `private_id`.  
+Using `fields` you would define the `field` as `"private_{private_id}"`.  The field is now generic to the route, 
+but the data can be retrieved and cached using your defined `key` which in this case `"private_1234"`. 
+The attributes are automatically filled from 
+`loader_args["params"]`.  To get the `key` from the `field`, Keychain does a simple string formatting: 
+`key = field.format(**loader_args["params"])`
 So, any number of `params` can be used to create a unique `key` for storage and retrieval. 
 
 ``` python
+# client/routes.py
 class PrivateIdRoute(AutoLoad):
     path = "/private/:private_id"
     form = "Pages.Private"
@@ -176,12 +179,12 @@ class PrivateIdRoute(AutoLoad):
     fields = ["private_{private_id}"]
 ```
 
-Here we use the `path` attributes within the `field`.  Now, there is a slight annoyance with this.  The `self.item`
+Here we use the `path`'s `private_id` within the `field`.  Now, there is a slight annoyance with this.  The `self.item`
 would have the key `"private_{private_id}"`.  When using `nav_context` to send data during navigation you would also 
 need to use this key.  However, you can remap keys to simplify this case:
 
-### client/routes.py
 ``` python
+# client/routes.py
 class PrivateIdRoute(AutoLoad):
     path = "/private/:private_id"
     form = "Pages.Private"
@@ -193,9 +196,8 @@ class PrivateIdRoute(AutoLoad):
 ```
 
 Server functions are registered using the `field="private_{private_id}"` and you have access to `loader_args`.
-
-### server/client_data.py
 ``` python
+# server/client_data.py
 @register_data_request(field="private_{private_id}")
 def get_private_value(*args, **loader_args):
     return f"Private Value:{3 * str(loader_args['params'].get('private_id'))}"
