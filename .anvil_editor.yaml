@@ -1,5 +1,6 @@
 unique_ids:
-  assets: {}
+  assets:
+    keychain.png: '1749145715923718386394143.7905'
   forms: {}
   modules:
     data_finder: '1747581904192168501300855.35263'

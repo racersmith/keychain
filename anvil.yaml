@@ -3,7 +3,7 @@ dependencies:
 - dep_id: dep_capuawajr8465t
   resolution_hints: {app_id: 3PIDO5P3H4VPEMPL, name: routing, package_name: routing}
   version: {version_tag: v0.3.5}
-metadata: {description: Simplifying page data requirements and minimizing server calls, title: Keychain}
+metadata: {description: Simplifying page data requirements and minimizing server calls, logo_img: 'asset:keychain.png', title: Keychain}
 name: keychain
 native_deps: null
 package_name: keychain
