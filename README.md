@@ -1,88 +1,139 @@
-# About This [Anvil](https://anvil.works/?utm_source=github:app_README) App
+<p align="center">
+<img src="theme/assets/keychain.png" width="256">
+</p>
 
-### Build web apps with nothing but Python.
+# Keychain
+The idea of keychain is to simplify the access to data in an Anvil App that is using
+[routing](https://github.com/anvil-works/routing) by using data keys that are consistent between
+page, client and server.  Keychain automatically fetches any cached data on the client side then requests any missing
+data from the server in a single round-trip server call.
 
-The app in this repository is built with [Anvil](https://anvil.works?utm_source=github:app_README), the framework for building web apps with nothing but Python. You can clone this app into your own Anvil account to use and modify.
+## What does Keychain do?
+Keychain takes the common usage of data binding from a form's item attribute ie. `self.item['name']` and extends this
+to defining what data a form requires, caching, and retriving missing data from the server. The data key `name` in this 
+example, is data definition throughout these places.
 
-Below, you will find:
-- [How to open this app](#opening-this-app-in-anvil-and-getting-it-online) in Anvil and deploy it online
-- Information [about Anvil](#about-anvil)
-- And links to some handy [documentation and tutorials](#tutorials-and-documentation)
+Keychain automatically finds the data from `loader_args['nav_context']`, keyring's client cache, and finally, requesting
+from the server.
 
-## Opening this app in Anvil and getting it online
+When requesting data from the server, the page retrieves all missing data in a single server call reducing load time.
+However, on the server side, data is not defined in a single server function, and the user is free to reduce each 
+function to the smallest realistic return scope.  Keychain, automatically compiles the necessary server functions to 
+return the requested data keys to the client.
 
-### Cloning the app
+Keychain allows data permission to be defined at the key level and allows for redirections if a client tries to access
+data without the necessary permissions.
 
-Go to the [Anvil Editor](https://anvil.works/build?utm_source=github:app_README) (you might need to sign up for a free account) and click on “Clone from GitHub” (underneath the “Blank App” option):
+## Example
 
-<img src="https://anvil.works/docs/version-control/img/git/clone-from-github.png" alt="Clone from GitHub"/>
-
-Enter the URL of this GitHub repository. If you're not yet logged in, choose "GitHub credentials" as the authentication method and click "Connect to GitHub".
-
-<img src="https://anvil.works/docs/version-control/img/git/clone-app-from-git.png" alt="Clone App from Git modal"/>
-
-Finally, click "Clone App".
-
-This app will then be in your Anvil account, ready for you to run it or start editing it! **Any changes you make will be automatically pushed back to this repository, if you have permission!** You might want to [make a new branch](https://anvil.works/docs/version-control?utm_source=github:app_README).
-
-### Running the app yourself:
-
-Find the **Run** button at the top-right of the Anvil editor:
-
-<img src="https://anvil.works/docs/img/run-button-new-ide.png"/>
+### client/routes.py
+``` python
+from routing.router import Route, Redirect
+from keychain.client import AutoLoad, initialize_cache
 
 
-### Publishing the app on your own URL
+class HomeRoute(AutoLoad):
+    path = "/home"
+    form = "Pages.Home"
+    fields = ["first_load", "the answer to everything"]
+    strict = False
 
-Now you've cloned the app, you can [deploy it on the internet with two clicks](https://anvil.works/docs/deployment/quickstart?utm_source=github:app_README)! Find the **Publish** button at the top-right of the editor:
 
-<img src="https://anvil.works/docs/deployment/img/environments/publish-button.png"/>
+class AccountRoute(AutoLoad):
+    path = "/account"
+    form = "Pages.Account"
+    strict = False
+    fields = ["first_load", "the answer to life", "name", "email"]
+```
 
-When you click it, you will see the Publish dialog:
+Here we define what data `fields` are required for each page.  Notice that `"first_load"` is reused between pages.
+Keychain will automatically cache the reused field for reuse between the pages.
 
-<img src="https://anvil.works/docs/deployment/img/quickstart/empty-environments-dialog.png"/>
+### server/client_data.py
+``` python
+import anvil.server
+import anvil.user
+from keychain.server import register_data_request, Flatten
 
-Click **Publish This App**, and you will see that your app has been deployed at a new, public URL:
+import time
 
-<img src="https://anvil.works/docs/deployment/img/quickstart/default-public-environment.png"/>
 
-That's it - **your app is now online**. Click the link and try it!
+def admin_check():
+    user = anvil.users.get_user()
+    return user['role'] == 'admin'
 
-## About Anvil
 
-If you’re new to Anvil, welcome! Anvil is a platform for building full-stack web apps with nothing but Python. No need to wrestle with JS, HTML, CSS, Python, SQL and all their frameworks – just build it all in Python.
+@register_data_request(
+    field=[f"the answer to {x}" for x in ["everything", "life", "the universe"]],
+    permission=admin_check
+)
+def get_the_answer(*args, **loader_args):
+    print("get_the_answer", loader_args["params"])
+    return 42
 
-<figure>
-<figcaption><h3>Learn About Anvil In 80 Seconds👇</h3></figcaption>
-<a href="https://www.youtube.com/watch?v=3V-3g1mQ5GY" target="_blank">
-<img
-  src="https://anvil-website-static.s3.eu-west-2.amazonaws.com/anvil-in-80-seconds-YouTube.png"
-  alt="Anvil In 80 Seconds"
-/>
-</a>
-</figure>
-<br><br>
 
-[![Try Anvil Free](https://anvil-website-static.s3.eu-west-2.amazonaws.com/mark-complete.png)](https://anvil.works?utm_source=github:app_README)
+@register_data_request(field=["account", "name", "email", "phone"])
+def get_account_data(*args, **loader_args):
+    """Allow multiple fields to resolve to the same function for use cases like this.
+    Here I'm using the Flatten marker that will then be flattened in the data reponse.
+    This might be a complication that without much benefit.
+    This could be interesting if we namespaced keys...
+    ie.
+        'account' -> {'name': name, 'email': email, 'phone': phone}
+        'account.email' -> email
+    """
+    print("get_account_data", loader_args.get("params", None))
+    return Flatten(name="Arther", email="arther@galaxyguides.com", phone="987-654-3210")
 
-To learn more about Anvil, visit [https://anvil.works](https://anvil.works?utm_source=github:app_README).
 
-## Tutorials and documentation
+@register_data_request(field=["first_load", "server_time"])
+def get_time(*args, **loader_args):
+    print("get_time", loader_args.get("params", None))
+    return time.time()
+```
 
-### Tutorials
+Each of the fields pages are requesting should have a matching function on the server.  These functions are registered
+by adding `@register_data_request` decorator.  Adding a `permission` to the registration forces a function call before
+the data is accessed.
 
-If you are just starting out with Anvil, why not **[try the 10-minute Feedback Form tutorial](https://anvil.works/learn/tutorials/feedback-form?utm_source=github:app_README)**? It features step-by-step tutorials that will introduce you to the most important parts of Anvil.
+### routing_context.data
+Now, with the fields the page requires and the function on the server registered, all required data will be available 
+to the form in the routing_context.data as a dict.  So, for instance, the `/home` route will have
+``` python
+routing_context.data = {
+    "first_load": 123456789, 
+    "the answer to everything": 42
+}
+```
 
-Anvil has tutorials on:
-- [Building Dashboards](https://anvil.works/learn/tutorials/data-science#dashboarding?utm_source=github:app_README)
-- [Multi-User Applications](https://anvil.works/learn/tutorials/multi-user-apps?utm_source=github:app_README)
-- [Building Web Apps with an External Database](https://anvil.works/learn/tutorials/external-database?utm_source=github:app_README)
-- [Deploying Machine Learning Models](https://anvil.works/learn/tutorials/deploy-machine-learning-model?utm_source=github:app_README)
-- [Taking Payments with Stripe](https://anvil.works/learn/tutorials/stripe?utm_source=github:app_README)
-- And [much more....](https://anvil.works/learn/tutorials?utm_source=github:app_README)
+The server functions will have the data applied to the key that is requested. So, in this case, `"first_load"` was
+the request field and the resulting dict key not `"server_time"`.
 
-### Reference Documentation
+`Flatten` allows you to update the request dict rather than adding a sub dict.  This behavior can be seen in the 
+`get_account` function. Requesting `"account"` without Flatten would result in:
+``` python
+{
+    "account": {
+        "name": "Arther",
+        "email": "arther@galaxyguides.com", 
+        "phone": "987-654-3210"
+    }
+}
+```
 
-The Anvil reference documentation provides comprehensive information on how to use Anvil to build web applications. You can find the documentation [here](https://anvil.works/docs/overview?utm_source=github:app_README).
+with Flatten the result is not nested under `"account"`
+``` python
+{
+    "name": "Arther",
+    "email": "arther@galaxyguides.com", 
+    "phone": "987-654-3210"
+}
+```
 
-If you want to get to the basics as quickly as possible, each section of this documentation features a [Quick-Start Guide](https://anvil.works/docs/overview/quickstarts?utm_source=github:app_README).
+
+## Demo App
+Checkout the demo app for Keychain:
+[Clone in Anvil without keychain clone](https://anvil.works/build#clone:UKCRS4JSFMPBJBAX=GJHMGQFWRORN55FSMRCJRMV6)
+[Clone in Anvil with keychain clone](https://anvil.works/build#clone:UKCRS4JSFMPBJBAX=GJHMGQFWRORN55FSMRCJRMV6|UESVUJKDGQULTT5M=EZQCPFBV2DT3TRODVQX3CG7Z)
+
+
