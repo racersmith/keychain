@@ -8,5 +8,5 @@ unique_ids:
     data_finder.errors: '1748876739579225998500516.08395'
   scripts: {}
   server_modules:
-    DataFinder: '1747760551355584425198318.4397'
-    DataFinder.DataFinder: '1747760604510259448330132.51346'
+    server: '1747760551355584425198318.4397'
+    server.DataFinder: '1747760604510259448330132.51346'
