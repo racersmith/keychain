@@ -5,12 +5,12 @@
 # Keychain
 The idea of keychain is to simplify the access to data in an Anvil App that is using
 [routing](https://github.com/anvil-works/routing) by using data keys that are consistent between
-page, client and server.  Keychain automatically fetches any cached data on the client side then requests any missing
+page, client and server. Keychain automatically fetches any cached data on the client side then requests any missing
 data from the server in a single round-trip server call.
 
 ## What does Keychain do?
 Keychain takes the common usage of data binding from a form's item attribute ie. `self.item['name']` and extends this
-to defining what data a form requires, caching, and retriving missing data from the server. The data key `name` in this 
+to defining what data a form requires, caching and retrieving missing data from the server. The data key `name` in this 
 example, is data definition throughout these places.
 
 Keychain automatically finds the data from `loader_args['nav_context']`, keyring's client cache, and finally, requesting
@@ -18,7 +18,7 @@ from the server.
 
 When requesting data from the server, the page retrieves all missing data in a single server call reducing load time.
 However, on the server side, data is not defined in a single server function, and the user is free to reduce each 
-function to the smallest realistic return scope.  Keychain, automatically compiles the necessary server functions to 
+function to the smallest realistic return scope. Keychain automatically compiles the necessary server functions to 
 return the requested data keys to the client.
 
 Keychain allows data permission to be defined at the key level and allows for redirections if a client tries to access
@@ -35,7 +35,7 @@ from keychain.client import AutoLoad, initialize_cache
 class HomeRoute(AutoLoad):
     path = "/home"
     form = "Pages.Home"
-    fields = ["first_load", "the answer to everything"]
+    fields = ["first_load", "the answer to life the universe and everything"]
     strict = False
 
 
@@ -43,7 +43,7 @@ class AccountRoute(AutoLoad):
     path = "/account"
     form = "Pages.Account"
     strict = False
-    fields = ["first_load", "the answer to life", "name", "email"]
+    fields = ["first_load", "the answer to life the universe and everything", "name", "email"]
 ```
 
 Here we define what data `fields` are required for each page.  Notice that `"first_load"` is reused between pages.
@@ -64,7 +64,7 @@ def admin_check():
 
 
 @register_data_request(
-    field=[f"the answer to {x}" for x in ["everything", "life", "the universe"]],
+    field="the answer to life the universe and everything",
     permission=admin_check
 )
 def get_the_answer(*args, **loader_args):
@@ -107,7 +107,8 @@ the request field and the resulting dict key not `"server_time"`.
         "name": "Arther",
         "email": "arther@galaxyguides.com", 
         "phone": "987-654-3210"
-    }
+    },
+    "first_load": 123456789,
 }
 ```
 
@@ -116,7 +117,8 @@ with Flatten the result is not nested under `"account"`
 {
     "name": "Arther",
     "email": "arther@galaxyguides.com", 
-    "phone": "987-654-3210"
+    "phone": "987-654-3210",
+    "first_load": 123456789,
 }
 ```
 
@@ -143,21 +145,9 @@ to the form in the routing_context.data as a dict.
 ``` python
 self.item = {
     "first_load": 123456789, 
-    "the answer to everything": 42,
+    "the answer to life the universe and everything": 42,
 }
 ```
-
-## Demo App
-Checkout the demo app for Keychain:
-
-[Clone in Anvil without keychain clone](https://anvil.works/build#clone:UKCRS4JSFMPBJBAX=GJHMGQFWRORN55FSMRCJRMV6)
-
-[Clone in Anvil with keychain clone](https://anvil.works/build#clone:UKCRS4JSFMPBJBAX=GJHMGQFWRORN55FSMRCJRMV6|UESVUJKDGQULTT5M=EZQCPFBV2DT3TRODVQX3CG7Z)
-
-## Using
-[Clone Keychain](https://anvil.works/build#clone:UESVUJKDGQULTT5M=EZQCPFBV2DT3TRODVQX3CG7Z)
-
-App ID: `UESVUJKDGQULTT5M` 
 
 ## Fields vs. Keys
 I make a distinction between the two because of an additional feature within Keychain. Conceptually, `keys` are used 
@@ -171,10 +161,13 @@ Let's say we have some `"private"` field that is associated with a `private_id=1
 `("private", 1234)` and we also need to store a unique instance of `"private"` for this `private_id`.  
 Using `fields` you would define the `field` as `"private_{private_id}"`.  The field is now generic to the route, 
 but the data can be retrieved and cached using your defined `key` which in this case `"private_1234"`. 
-The attributes are automatically filled from 
-`loader_args["params"]`.  To get the `key` from the `field`, Keychain does a simple string formatting: 
+The attributes are automatically filled from `loader_args["params"]`.  To get the `key` from the `field`, Keychain does 
+a simple string formatting: 
 `key = field.format(**loader_args["params"])`
-So, any number of `params` can be used to create a unique `key` for storage and retrieval. 
+
+So, any number of `params` can be used to create a unique `key` for storage and retrieval. The `name_{a}` is simply an 
+example and any string can be used as long as it forms a unique key that is useful to you. 
+`name a:{a} b:{b}`, `name{a}{b}`, `{a}name{b}`, ... 
 
 ``` python
 # client/routes.py
@@ -208,3 +201,20 @@ Server functions are registered using the `field="private_{private_id}"` and you
 def get_private_value(*args, **loader_args):
     return f"Private Value:{3 * str(loader_args['params'].get('private_id'))}"
 ```
+
+## Demo App
+Checkout the demo app for Keychain:
+
+### Clone demo without keychain
+[Clone in Anvil without keychain clone](https://anvil.works/build#clone:UKCRS4JSFMPBJBAX=GJHMGQFWRORN55FSMRCJRMV6)
+
+### Clone demo with keychain
+[Clone in Anvil with keychain clone](https://anvil.works/build#clone:UKCRS4JSFMPBJBAX=GJHMGQFWRORN55FSMRCJRMV6|UESVUJKDGQULTT5M=EZQCPFBV2DT3TRODVQX3CG7Z)
+
+## Using
+
+### Clone Keychain
+[Clone Keychain](https://anvil.works/build#clone:UESVUJKDGQULTT5M=EZQCPFBV2DT3TRODVQX3CG7Z)
+
+### App ID
+`UESVUJKDGQULTT5M` 
