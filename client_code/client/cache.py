@@ -10,7 +10,7 @@ def evaluate_field(field: str, loader_args: dict):
     """Add the params to the field
     'account_{account_id}' -> 'account_123'
     """
-    return field.format(**loader_args["params"])
+    return field.format(**loader_args.get("params", dict()))
 
 
 def clear_cache():
