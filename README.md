@@ -205,8 +205,8 @@ def get_private_value(*args, **loader_args):
 ## Cache Invalidation
 All invalidations can be done through keychain's `keychain.client.invalidate()` method.
 
-`invalidate(field_or_key, *, path, auto_invalidate_paths=True)`
-### field_or_key
+`invalidate(field_or_key=None, *, path=None, auto_invalidate_paths=True)`
+### `field_or_key`
 This can handle a single string or an interable.  This will find and invalidate data cached within keychain.
 When `auto_invalidate_paths=True`, paths impacted by the cache invalidation of a field or key will automatically have
 their cached form or data invalidated through `routing` with `routing.router.invalidte(path='impacted_path', exact=False)`.
@@ -219,10 +219,17 @@ invalidate(['name', 'address', 'user_{user_id}'])
 invalidate(['user_1', 'user_5'])
 ```
 
-### path
-Invalidating a path assumes that the fields associated with the path should also be invalidated. 
+### `path`
+Invalidating a path assumes that the fields associated with the path should also be invalidated. This will also happily handle passing multiple paths in an iterable.
 When `auto_invalidate_paths=True`, this will cascade the path's invalidated fields to other paths and invalidate
-their cached form and data in `routing`.
+their cached form and data in `routing`.  This will not invalidate data on these paths that were otherwise not impacted.
+
+``` python
+from keychain.client import invalidate
+
+invalidate(path='/home')
+invalidate(path=['/home', '/account'])
+```
 
 Note that `path` and `auto_invalidate_paths` are forced keyword arguments.
 
@@ -242,12 +249,16 @@ class AddressRoute(AutoLoad):
 class AccountRoute(AutoLoad):
     path = "/account"
     form = "Pages.Account"
-    fields = ["name", "address"]
+    fields = ["name", "address", "dark_mode"]
 ```
-
+Here are some examples of invalidate calls and what would be invalidated:
 `invalidate('name')`
 * field: `name`
 * path: `/name`
+* path: `/account`
+
+`invalidate('dark_mode')`
+* field: `dark_mode`
 * path: `/account`
 
 `invalidate(path='/account')`
@@ -262,6 +273,12 @@ class AccountRoute(AutoLoad):
 * field: `name`  field in `/account`
 * field: `address`  field in `/account`
 
+`invalidate(path=['/name', '/address'])`
+* path: `/name`
+* path: `/address`
+* field: `name`  field in `/name`
+* field: `address`  field in `/address`
+* path: `/account` impacted by `name` and `address` invalidation
 
 ## Demo App
 Checkout the demo app for Keychain:
