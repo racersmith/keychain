@@ -2,6 +2,7 @@ from routing.router._route import sorted_routes
 from routing.router import Route
 from routing import router
 
+
 # Global cache stores
 _DATA = dict()  # Actual key: value cache store  {"account_123": "987"}
 _FIELDS = set()  # What data fields are we looking for?  These are not the same as the store keys in _DATA ie. "account_{account_id}"
@@ -48,7 +49,7 @@ def get_path_fields(path: str) -> set[str]:
     return get_route_fields(route)
     
 
-def _invalidate_specific(fields_or_keys: set[str]):
+def invalidate_specific(fields_or_keys: set[str]):
     global _DATA
     global _GROUPS
 
@@ -60,7 +61,7 @@ def _invalidate_specific(fields_or_keys: set[str]):
             _DATA.pop(key, None)
 
 
-def _find_impacted_paths(fields_or_keys: set[str]) -> set[str]:
+def find_impacted_paths(fields_or_keys: set[str]) -> set[str]:
     impacted_paths = set()
     for route in sorted_routes:
         route_fields = get_route_fields(route)
@@ -69,7 +70,17 @@ def _find_impacted_paths(fields_or_keys: set[str]) -> set[str]:
     return impacted_paths
 
 
-def ensure_set(a: str | list[str] | set[str] | None) -> set[str]:
+def ensure_set(a) -> set[str]:
+    """ ensure that the argument is convereted into a set but does not split a string 
+    Args:
+        a: str | list[str] | set[str] | None
+
+    Returns:
+        set of strings
+        'abc' -> {'abc', }
+        
+    """
+    
     if a is None:
         return set()
         
@@ -80,32 +91,41 @@ def ensure_set(a: str | list[str] | set[str] | None) -> set[str]:
         return set(a)
 
 
-def invalidate(fields: str | list[str] = None, keys: str | list[str]=None, paths: str | list[str]=None, auto_invalidate_paths=False):
+def invalidate(
+    field: str = None, 
+    fields: list[str] = None, 
+    key: str=None, 
+    keys: list[str]=None, 
+    path: str=None, 
+    paths: list[str]=None, 
+    auto_invalidate_paths=True):
     """ Invalidate keychain fields and keys and routing cache for paths
     Args:
-        fields: keychain fields to invalidate 'page_{page_number}' will invalidate all cached pages ie. 'page_1', 'page_3'...
-        keys: keychain keys to invalidate ie., 'page_2'
-        paths: routing path to invalidate, this will invalidate the routing cache as well as keychain fields associated with the path
+        field_s: str | list[str], keychain fields to invalidate 'page_{page_number}' will invalidate all cached pages ie. 'page_1', 'page_3'...
+        key_s: str | list[str], keychain keys to invalidate ie. 'page_2'
+        path_s: str | list[str], routing path to invalidate, this will invalidate the routing cache as well as keychain fields associated with the path
         auto_invalidate_paths: Automatically collect the paths that are impacted for the given fields and keys and invalidates the routing cache
-    
     """
     fields_or_keys = set()
+    fields_or_keys.update(ensure_set(field))
     fields_or_keys.update(ensure_set(fields))
+    fields_or_keys.update(ensure_set(key))
     fields_or_keys.update(ensure_set(keys))
 
     if auto_invalidate_paths:
         # Find the paths that are impacted by field or key invalidation and invalidate the router cache for the paths
-        impacted_paths = _find_impacted_paths(fields_or_keys)
+        impacted_paths = find_impacted_paths(fields_or_keys)
         
         # Invalidate here rather than adding these to the paths so we keep any cached data that could be preserved
         for path in impacted_paths:
             router.invalidate(path=path)
-    
-    for path in ensure_set(paths):
+
+    all_paths = ensure_set(path).union(ensure_set(paths))
+    for path in all_paths:
         fields_or_keys.update(get_path_fields(path))
         router.invalidate(path=path)
     
-    _invalidate_specific(fields_or_keys)
+    invalidate_specific(fields_or_keys)
 
 
 def initialize_cache():
@@ -167,4 +187,3 @@ def load(fields, missing_value, loader_args):
             if value is not missing_value:
                 found[field] = value
     return found
-
