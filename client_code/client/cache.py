@@ -1,4 +1,6 @@
 from routing.router._route import sorted_routes
+from routing.router import Route
+from routing import router
 
 # Global cache stores
 _DATA = dict()  # Actual key: value cache store  {"account_123": "987"}
@@ -21,13 +23,89 @@ def clear_cache():
     _GROUPS.clear()
 
 
-def invalidate(*fields_or_keys):
+def get_route_from_path(path: str) -> Route:
+    if path is None:
+        return None
+
+    for route in sorted_routes:
+        if hasattr(route, "path") and route.path == path:
+            return route
+
+    return None
+
+
+def get_route_fields(route) -> set[str]:
+    fields = set()
+    if route is not None:
+        for field_type in ["fields", "local_fields", "global_fields"]:
+            fields.update(getattr(route, field_type, set()))
+            
+    return fields
+
+
+def get_path_fields(path: str) -> set[str]:
+    route = get_route_from_path(path)
+    return get_route_fields(route)
+    
+
+def _invalidate_specific(fields_or_keys: set[str]):
     global _DATA
     global _GROUPS
-    
+
+    # Look for specific chache keys
     for field_or_key in fields_or_keys:
+        # Get resolved keys from groups and pop them or return just the base field
         for key in _GROUPS.pop(field_or_key, {field_or_key, }):
+            # Remove cached data
             _DATA.pop(key, None)
+
+
+def _find_impacted_paths(fields_or_keys: set[str]) -> set[str]:
+    impacted_paths = set()
+    for route in sorted_routes:
+        route_fields = get_route_fields(route)
+        if hasattr(route, "path") and not route_fields.isdisjoint(fields_or_keys):
+            impacted_paths.add(route.path)
+    return impacted_paths
+
+
+def ensure_set(a: str | list[str] | set[str] | None) -> set[str]:
+    if a is None:
+        return set()
+        
+    if isinstance(a, str):
+        return {a, }
+
+    else:
+        return set(a)
+
+
+def invalidate(fields: str | list[str] = None, keys: str | list[str]=None, paths: str | list[str]=None, auto_path=False):
+    """ Invalidate keychain fields and keys and routing cache for paths
+    Args:
+        fields: keychain fields to invalidate 'page_{page_number}' will invalidate all cached pages ie. 'page_1', 'page_3'...
+        keys: keychain keys to invalidate ie., 'page_2'
+        paths: routing path to invalidate, this will invalidate the routing cache as well as keychain fields associated with the path
+        auto_path: Automatically collect the paths that are impacted for the given fields and keys and invalidates the routing cache
+    
+    """
+    fields_or_keys = set()
+    fields_or_keys.update(ensure_set(fields))
+    fields_or_keys.update(ensure_set(keys))
+    paths = ensure_set(paths)
+
+    if auto_path:
+        # Find the paths that are impacted by field or key invalidation and invalidate the router cache for the paths
+        impacted_paths = _find_impacted_paths(fields_or_keys)
+        # Invalidate here so we 
+        for path in impacted_paths:
+            router.invalidate(path=path)
+    
+    for path in ensure_set(paths):
+        fields_or_keys.update(get_path_fields(path))
+        router.invalidate(path=path)
+    
+    _invalidate_specific(fields_or_keys)
 
 
 def initialize_cache():
