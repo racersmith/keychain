@@ -202,6 +202,65 @@ def get_private_value(*args, **loader_args):
     return f"Private Value:{3 * str(loader_args['params'].get('private_id'))}"
 ```
 
+## Cache Invalidation
+All invalidations can be done through keychain's `keychain.client.invalidate()` method.
+
+`invalidate(field_or_key, *, path, auto_invalidate_paths=True)`
+### field_or_key
+This can handle a single string or an interable.  This will find and invalidate data cached within keychain.
+When `auto_invalidate_paths=True`, paths impacted by the cache invalidation of a field or key will automatically have
+their cached form or data invalidated through `routing` with `routing.router.invalidte(path='impacted_path', exact=False)`.
+
+``` python
+from keychain.client import invalidate
+
+invalidate('name')
+invalidate(['name', 'address', 'user_{user_id}'])
+invalidate(['user_1', 'user_5'])
+```
+
+### path
+Invalidating a path assumes that the fields associated with the path should also be invalidated. 
+When `auto_invalidate_paths=True`, this will cascade the path's invalidated fields to other paths and invalidate
+their cached form and data in `routing`.
+
+### Example
+`client/route.py`
+``` python
+class NameRoute(AutoLoad):
+    path = "/name"
+    form = "Pages.Name"
+    fields = ["name"]
+
+class AddressRoute(AutoLoad):
+    path = "/address"
+    form = "Pages.Address"
+    fields = ["address"]
+    
+class AccountRoute(AutoLoad):
+    path = "/account"
+    form = "Pages.Account"
+    fields = ["name", "address"]
+```
+
+`invalidate('name')`
+* field: `name`
+* path: `/name`
+* path: `/account`
+
+`invalidate(path='/account')`
+* path: `/account`
+* field: `name`  field in `/account`
+* field: `address`  field in `/account`
+* path: `/name`  impacted by `name` invalidation
+* path: `/address`  impacted by `address` invalidation
+
+`invalidate(path='/account', auto_invalidate_paths=False)`
+* path: `/account`
+* field: `name`  field in `/account`
+* field: `address`  field in `/account`
+
+
 ## Demo App
 Checkout the demo app for Keychain:
 
