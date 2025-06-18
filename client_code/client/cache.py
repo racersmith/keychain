@@ -80,24 +80,24 @@ def ensure_set(a: str | list[str] | set[str] | None) -> set[str]:
         return set(a)
 
 
-def invalidate(fields: str | list[str] = None, keys: str | list[str]=None, paths: str | list[str]=None, auto_path=False):
+def invalidate(fields: str | list[str] = None, keys: str | list[str]=None, paths: str | list[str]=None, auto_invalidate_paths=False):
     """ Invalidate keychain fields and keys and routing cache for paths
     Args:
         fields: keychain fields to invalidate 'page_{page_number}' will invalidate all cached pages ie. 'page_1', 'page_3'...
         keys: keychain keys to invalidate ie., 'page_2'
         paths: routing path to invalidate, this will invalidate the routing cache as well as keychain fields associated with the path
-        auto_path: Automatically collect the paths that are impacted for the given fields and keys and invalidates the routing cache
+        auto_invalidate_paths: Automatically collect the paths that are impacted for the given fields and keys and invalidates the routing cache
     
     """
     fields_or_keys = set()
     fields_or_keys.update(ensure_set(fields))
     fields_or_keys.update(ensure_set(keys))
-    paths = ensure_set(paths)
 
-    if auto_path:
+    if auto_invalidate_paths:
         # Find the paths that are impacted by field or key invalidation and invalidate the router cache for the paths
         impacted_paths = _find_impacted_paths(fields_or_keys)
-        # Invalidate here so we 
+        
+        # Invalidate here rather than adding these to the paths so we keep any cached data that could be preserved
         for path in impacted_paths:
             router.invalidate(path=path)
     
