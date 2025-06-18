@@ -1,6 +1,10 @@
 from routing.router._route import sorted_routes
 from routing.router import Route
 from routing import router
+from routing.router._matcher import get_match
+from routing.router._navigate import get_nav_location
+from routing.router._segments import Segment
+from routing.router._utils import url_encode
 
 
 # Global cache stores
@@ -24,18 +28,44 @@ def clear_cache():
     _GROUPS.clear()
 
 
-def get_route_from_path(path: str) -> Route:
+def wildcard_path_params(path):
+    """ Fill any parameters in the path with a wildcard """
+    WILDCARD = "*"
+    # remove leading dots
+    segments = Segment.from_path(path)
+    leading_dots = path.startswith(".")
+
+    path = ""
+
+    for segment in segments:
+        if segment.is_static():
+            path += "/" + url_encode(segment.value)
+        elif segment.is_param():
+            path += "/" + url_encode(WILDCARD)
+
+    if leading_dots:
+        # remove the leasing slash
+        path = path[1:]
+
+    return path
+
+
+def get_match_from_path(path: str) -> Route:
     if path is None:
+        # boring... 
         return None
 
-    for route in sorted_routes:
-        if hasattr(route, "path") and route.path == path:
-            return route
+    # Here we are filling any path params with a wildcard to expand our search when necessary and not require passing params
+    generic_path = wildcard_path_params(path)
 
-    return None
+    # use as much of routing as possible to resolve a path
+    location = get_nav_location(generic_path, path=None, query=None, params=None, hash=None)
+    match = get_match(location)
+    return match
 
 
 def get_route_fields(route) -> set[str]:
+    """ Get all fields assocated with a route """
     fields = set()
     if route is not None:
         for field_type in ["fields", "local_fields", "global_fields"]:
@@ -45,11 +75,16 @@ def get_route_fields(route) -> set[str]:
 
 
 def get_path_fields(path: str) -> set[str]:
-    route = get_route_from_path(path)
-    return get_route_fields(route)
+    """ Get all fields assocated with a path """
+    match = get_match_from_path(path)
+    return get_route_fields(match.route)
     
 
 def invalidate_specific(fields_or_keys: set[str]):
+    """ remove cache data for specific fields and keys 
+    when a field is given that includes params, we utilize the _GROUPS dict to find assocated keys to invalidate
+    In this case this will also remove the _GROUP entry for the field.
+    """
     global _DATA
     global _GROUPS
 
@@ -62,10 +97,14 @@ def invalidate_specific(fields_or_keys: set[str]):
 
 
 def find_impacted_paths(fields_or_keys: set[str]) -> set[str]:
+    """ Find the paths that contain the field or key """
     impacted_paths = set()
     for route in sorted_routes:
+        if getattr(route, "path", None) is None:
+            continue
+            
         route_fields = get_route_fields(route)
-        if hasattr(route, "path") and not route_fields.isdisjoint(fields_or_keys):
+        if route_fields.isdisjoint(fields_or_keys):
             impacted_paths.add(route.path)
     return impacted_paths
 
@@ -78,7 +117,6 @@ def ensure_set(a) -> set[str]:
     Returns:
         set of strings
         'abc' -> {'abc', }
-        
     """
     
     if a is None:
@@ -92,12 +130,9 @@ def ensure_set(a) -> set[str]:
 
 
 def invalidate(
-    field: str = None, 
-    fields: list[str] = None, 
-    key: str=None, 
-    keys: list[str]=None, 
-    path: str=None, 
-    paths: list[str]=None, 
+    field: str = None, fields: list[str] = None, 
+    key: str=None, keys: list[str]=None, 
+    path: str=None, paths: list[str]=None, 
     auto_invalidate_paths=True):
     """ Invalidate keychain fields and keys and routing cache for paths
     Args:
@@ -118,18 +153,20 @@ def invalidate(
         
         # Invalidate here rather than adding these to the paths so we keep any cached data that could be preserved
         for path in impacted_paths:
-            router.invalidate(path=path)
+            router.invalidate(path=path, exact=False)
 
     all_paths = ensure_set(path).union(ensure_set(paths))
     for path in all_paths:
         fields_or_keys.update(get_path_fields(path))
-        router.invalidate(path=path)
+        router.invalidate(path=path, exact=False)
     
     invalidate_specific(fields_or_keys)
 
 
 def initialize_cache():
-    """Find data fields that are reused between routes."""
+    """Find data fields that are reused between routes.
+    Fields that are reused are automatically added to the global keychain cache
+    """
     all_fields = set()
     reused_fields = set()
 
@@ -150,6 +187,7 @@ def initialize_cache():
 
 
 def _set(field: str, value, missing_value, loader_args):
+    """ set global cache value """
     global _DATA
     global _GROUPS
 
@@ -174,11 +212,13 @@ def update(data: dict, missing_value, loader_args):
 
 
 def _get(field: str, missing_value, loader_args) -> dict:
+    """ Get cache value """
     key = evaluate_field(field, loader_args)
     return _DATA.get(key, missing_value)                
 
 
 def load(fields, missing_value, loader_args):
+    """ Get all requested cached data """
     found = dict()
 
     if fields and _DATA:
