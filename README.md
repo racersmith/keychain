@@ -224,6 +224,8 @@ Invalidating a path assumes that the fields associated with the path should also
 When `auto_invalidate_paths=True`, this will cascade the path's invalidated fields to other paths and invalidate
 their cached form and data in `routing`.
 
+Note that `path` and `auto_invalidate_paths` are forced keyword arguments.
+
 ### Example
 `client/route.py`
 ``` python
