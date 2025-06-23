@@ -1,5 +1,5 @@
 import anvil.server
-from routing.router import Route, navigate
+from routing.router import Route, navigate, Redirect
 
 from . import errors
 from . import cache
@@ -163,6 +163,8 @@ class AutoLoad(Route):
                     path=self.permission_error_path,
                     nav_context=loader_args["nav_context"],
                 )
+            except Redirect as r:
+                return navigate(**r.__dict__, replace=True)
 
         return found
 
