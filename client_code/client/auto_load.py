@@ -1,5 +1,6 @@
 import anvil.server
 from routing.router import Route, navigate, Redirect
+from routing.router._utils import ensure_dict
 
 from . import errors
 from . import cache
@@ -108,20 +109,37 @@ class AutoLoad(Route):
         print("found_in_global", found_in_global)
         data.update(found_in_global)
 
-        found_from_server = self._load_from_server(data, loader_args)
-        print("found_from_server", found_from_server)
-        data.update(found_from_server)
+        try:
+            found_from_server = self._load_from_server(data, loader_args)
+            print("found_from_server", found_from_server)
+            data.update(found_from_server)
+            
 
-        # Update the global cache
-        cache.update(data, self.missing_value, loader_args)
+            # Update the global cache
+            cache.update(data, self.missing_value, loader_args)
+    
+            if self.strict:
+                strict_data(fields, data, self.missing_value)
+    
+            if self.restrict_fields:
+                data = restrict_to_requested(fields, data)
+    
+            return self._apply_field_remap(data)
 
-        if self.strict:
-            strict_data(fields, data, self.missing_value)
-
-        if self.restrict_fields:
-            data = restrict_to_requested(fields, data)
-
-        return self._apply_field_remap(data)
+        except errors.AccessDenied:
+            print("Access Denied captured on client")
+            navigate(
+                path=self.permission_error_path,
+                nav_context=loader_args["nav_context"],
+            )
+        except errors.ServerRedirect as r:
+            print("Redirect captured on client")
+            navigate(path=r.path, nav_context=ensure_dict(r.data))
+        except Exception as e:
+            print('Uncaught exception')
+            print(e)
+            print(dir(e))
+            print(e.__dict__)
 
     def _get_output_keys(self) -> list:
         fields = self._get_all_fields()
@@ -156,17 +174,9 @@ class AutoLoad(Route):
         found = dict()
 
         if missing_keys:
-            try:
-                found.update(fetch_from_server(*missing_keys, **loader_args))
-            except errors.AccessDenied:
-                navigate(
-                    path=self.permission_error_path,
-                    nav_context=loader_args["nav_context"],
-                )
-            except Redirect as r:
-                return navigate(**r.__dict__, replace=True)
+            found.update(fetch_from_server(*missing_keys, **loader_args))
 
-        return found
+        return found            
 
     def _apply_field_remap(self, data: dict):
         return {
