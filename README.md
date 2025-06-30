@@ -280,6 +280,40 @@ Here are some examples of invalidate calls and what would be invalidated:
 * field: `address`  field in `/address`
 * path: `/account` impacted by `name` and `address` invalidation
 
+
+## Fetch
+In situations where you would like to get data from keychain outside of `AutoRoute` you can utilize `fetch`
+
+`fetch` is the route agnostic version of `_auto_load` inside of `AutoRoute`.
+It will look though the given `loader_args`, keychain cache and then request any remaining missing data from the server.
+The global cache will be updated with any new data from a `fetch()` call. 
+
+``` python
+fetch(
+    fields: list[str], 
+    missing_value=None, 
+    remap_fields: dict[str, str]=None, 
+    permission_error_path: str=None, 
+    strict: bool=False, 
+    restrict_fields: bool=False, 
+    force_update=False, 
+    **loader_args
+    )
+```
+
+This can be helpful for force updating a cache state after a user action, loading data during idle periods and polling
+data on-demand in the form.
+
+For example:
+``` python 
+    def timer_1_tick(self, **event_args):
+        """This method is called Every [interval] seconds. Does not trigger if [interval] is 0."""
+        preload = fetch("user_status", force_update=False)
+        if preload:
+            timer.interval = 0
+```
+
+
 ## Demo App
 Checkout the demo app for Keychain:
 
