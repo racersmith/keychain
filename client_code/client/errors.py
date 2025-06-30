@@ -1,5 +1,6 @@
 from anvil.server import AnvilWrappedError, _register_exception_type
 
+
 class AccessDenied(AnvilWrappedError):
     None
 

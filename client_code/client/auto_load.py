@@ -3,19 +3,11 @@ from routing.router import Route, navigate
 
 from . import errors
 from . import cache
+from . import utils
 
 
-def get_missing_fields(data: dict, missing_value) -> list:
-    """Get the sub-dict that contains missing values"""
-    return [field for field, value in data.items() if value == missing_value]
 
-
-def key_list_to_dict(keys: list, missing_value):
-    """Populate a dictionary with the given keys and fill with the missing value"""
-    return dict.fromkeys(keys or list(), missing_value)
-
-
-def strict_data(fields: list, data: dict, missing_value) -> dict:
+def strict_data(fields: list, data: dict, missing_value):
     """Raise an error if any field is missing data"""
     missing_data_fields = list()
     for field in fields:
@@ -30,8 +22,82 @@ def restrict_to_requested(fields: list, data: dict) -> dict:
     return {field: data[field] for field in fields}
 
 
-def fetch_from_server(*fields, **loader_args) -> dict:
-    return anvil.server.call_s("_keychain_data_request", fields, **loader_args)
+def load_from_nav_context(data: dict, missing_value, remap_fields: dict, **loader_args) -> dict:
+    """We expect that nav context will use the remapped key"""
+    missing_keys = utils.get_missing_fields(data, missing_value)
+    found = dict()
+
+    if missing_keys and loader_args.get("nav_context", False):
+        nav_context = loader_args["nav_context"]
+        for field in data.keys():
+            # look in nav_context using key ie. "account" not the field ie. "account_{id}"
+            key = remap_fields.get(field, field)
+
+            # return the value using the field
+            value = nav_context.get(key, missing_value)
+            if value is not missing_value:
+                found[field] = value
+    return found
+
+
+def load_from_global_cache(data: dict, missing_value, **loader_args) -> dict:
+    missing_keys = utils.get_missing_fields(data, missing_value)
+    return cache.load(missing_keys, missing_value, **loader_args)
+
+
+def load_from_server(data: dict, missing_value, permission_error_path: str, **loader_args: dict) -> dict:
+    missing_keys = utils.get_missing_fields(data, missing_value)
+    found = dict()
+
+    if missing_keys:
+        try:
+            found.update(anvil.server.call_s("_keychain_data_request", missing_keys, **loader_args))
+        except errors.AccessDenied as e:
+            if permission_error_path:
+                navigate(
+                    path=permission_error_path,
+                    nav_context=dict(**data, **loader_args.get("nav_context", dict())),
+                )
+            else:
+                raise e
+
+    return found
+
+
+def apply_field_remap(data: dict, remap_fields: dict):
+    return {
+        remap_fields.get(field, field): value for field, value in data.items()
+    }
+
+
+def fetch(fields: list[str], missing_value=None, remap_fields: dict[str, str]=None, permission_error_path: str=None, strict: bool=False, restrict_fields: bool=False, force_update=False, **loader_args):    
+    remap_fields = remap_fields or dict()
+    data = utils.key_list_to_dict(fields, missing_value)
+
+    if not force_update:
+        # if we are not forcing an update, search through our potential cache locations.
+        found_in_nav = load_from_nav_context(data, missing_value, remap_fields, **loader_args)
+        print("found_in_nav", found_in_nav)
+        data.update(found_in_nav)
+    
+        found_in_global = load_from_global_cache(data, missing_value, **loader_args)
+        print("found_in_global", found_in_global)
+        data.update(found_in_global)
+
+    found_from_server = load_from_server(data, missing_value, permission_error_path, **loader_args)
+    print("found_from_server", found_from_server)
+    data.update(found_from_server)
+
+    # Update the global cache
+    cache.update(data, missing_value, **loader_args)
+    
+    if restrict_fields:
+        data = restrict_to_requested(fields, data)
+        
+    if strict:
+        strict_data(fields, data, missing_value)
+
+    return apply_field_remap(data, remap_fields)
 
 
 class AutoLoad(Route):
@@ -98,30 +164,7 @@ class AutoLoad(Route):
         """
 
         fields = self._get_all_fields()
-        data = key_list_to_dict(fields, self.missing_value)
-
-        found_in_nav = self._load_from_nav_context(data, loader_args)
-        print("found_in_nav", found_in_nav)
-        data.update(found_in_nav)
-
-        found_in_global = self._load_from_global_cache(data, loader_args)
-        print("found_in_global", found_in_global)
-        data.update(found_in_global)
-
-        found_from_server = self._load_from_server(data, loader_args)
-        print("found_from_server", found_from_server)
-        data.update(found_from_server)
-
-        # Update the global cache
-        cache.update(data, self.missing_value, loader_args)
-
-        if self.strict:
-            strict_data(fields, data, self.missing_value)
-
-        if self.restrict_fields:
-            data = restrict_to_requested(fields, data)
-
-        return self._apply_field_remap(data)
+        return fetch(fields, self.missing_value, self.remap_fields, self.permission_error_path, self.strict, self.restrict_fields, **loader_args)
 
     def _get_output_keys(self) -> list:
         fields = self._get_all_fields()
@@ -129,44 +172,3 @@ class AutoLoad(Route):
 
     def _get_all_fields(self) -> list:
         return self.fields + self.global_fields + self.local_fields
-
-    def _load_from_nav_context(self, data: dict, loader_args: dict) -> dict:
-        """We expect that nav context will use the remapped key"""
-        missing_keys = get_missing_fields(data, self.missing_value)
-        found = dict()
-
-        if missing_keys and loader_args.get("nav_context", False):
-            nav_context = loader_args["nav_context"]
-            for field in data.keys():
-                # look in nav_context using key: account not the field: account_{id}
-                key = self.remap_fields.get(field, field)
-
-                # store the value using the field
-                value = nav_context.get(key, self.missing_value)
-                if value is not self.missing_value:
-                    found[field] = value
-        return found
-
-    def _load_from_global_cache(self, data: dict, loader_args: dict) -> dict:
-        missing_keys = get_missing_fields(data, self.missing_value)
-        return cache.load(missing_keys, self.missing_value, loader_args)
-
-    def _load_from_server(self, data: dict, loader_args: dict) -> dict:
-        missing_keys = get_missing_fields(data, self.missing_value)
-        found = dict()
-
-        if missing_keys:
-            try:
-                found.update(fetch_from_server(*missing_keys, **loader_args))
-            except errors.AccessDenied:
-                navigate(
-                    path=self.permission_error_path,
-                    nav_context=loader_args["nav_context"],
-                )
-
-        return found
-
-    def _apply_field_remap(self, data: dict):
-        return {
-            self.remap_fields.get(field, field): value for field, value in data.items()
-        }
