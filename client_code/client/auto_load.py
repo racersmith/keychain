@@ -6,7 +6,6 @@ from . import cache
 from . import utils
 
 
-
 def strict_data(fields: list, data: dict, missing_value):
     """Raise an error if any field is missing data"""
     missing_data_fields = list()
@@ -22,7 +21,9 @@ def restrict_to_requested(fields: list, data: dict) -> dict:
     return {field: data[field] for field in fields}
 
 
-def load_from_nav_context(data: dict, missing_value, remap_fields: dict, **loader_args) -> dict:
+def load_from_nav_context(
+    data: dict, missing_value, remap_fields: dict, **loader_args
+) -> dict:
     """We expect that nav context will use the remapped key"""
     missing_keys = utils.get_missing_fields(data, missing_value)
     found = dict()
@@ -45,13 +46,19 @@ def load_from_global_cache(data: dict, missing_value, **loader_args) -> dict:
     return cache.load(missing_keys, missing_value, **loader_args)
 
 
-def load_from_server(data: dict, missing_value, permission_error_path: str, **loader_args: dict) -> dict:
+def load_from_server(
+    data: dict, missing_value, permission_error_path: str, **loader_args: dict
+) -> dict:
     missing_keys = utils.get_missing_fields(data, missing_value)
     found = dict()
 
     if missing_keys:
         try:
-            found.update(anvil.server.call_s("_keychain_data_request", missing_keys, **loader_args))
+            found.update(
+                anvil.server.call_s(
+                    "_keychain_data_request", missing_keys, **loader_args
+                )
+            )
         except errors.AccessDenied as e:
             if permission_error_path:
                 navigate(
@@ -65,35 +72,46 @@ def load_from_server(data: dict, missing_value, permission_error_path: str, **lo
 
 
 def apply_field_remap(data: dict, remap_fields: dict):
-    return {
-        remap_fields.get(field, field): value for field, value in data.items()
-    }
+    return {remap_fields.get(field, field): value for field, value in data.items()}
 
 
-def fetch(fields: list[str], missing_value=None, remap_fields: dict[str, str]=None, permission_error_path: str=None, strict: bool=False, restrict_fields: bool=False, force_update=False, **loader_args):    
+def fetch(
+    fields: list[str],
+    missing_value=None,
+    remap_fields: dict[str, str] = None,
+    permission_error_path: str = None,
+    strict: bool = False,
+    restrict_fields: bool = False,
+    force_update=False,
+    **loader_args,
+):
     remap_fields = remap_fields or dict()
     data = utils.key_list_to_dict(fields, missing_value)
 
     if not force_update:
         # if we are not forcing an update, search through our potential cache locations.
-        found_in_nav = load_from_nav_context(data, missing_value, remap_fields, **loader_args)
+        found_in_nav = load_from_nav_context(
+            data, missing_value, remap_fields, **loader_args
+        )
         print("found_in_nav", found_in_nav)
         data.update(found_in_nav)
-    
+
         found_in_global = load_from_global_cache(data, missing_value, **loader_args)
         print("found_in_global", found_in_global)
         data.update(found_in_global)
 
-    found_from_server = load_from_server(data, missing_value, permission_error_path, **loader_args)
+    found_from_server = load_from_server(
+        data, missing_value, permission_error_path, **loader_args
+    )
     print("found_from_server", found_from_server)
     data.update(found_from_server)
 
     # Update the global cache
     cache.update(data, missing_value, **loader_args)
-    
+
     if restrict_fields:
         data = restrict_to_requested(fields, data)
-        
+
     if strict:
         strict_data(fields, data, missing_value)
 
@@ -164,7 +182,15 @@ class AutoLoad(Route):
         """
 
         fields = self._get_all_fields()
-        return fetch(fields, self.missing_value, self.remap_fields, self.permission_error_path, self.strict, self.restrict_fields, **loader_args)
+        return fetch(
+            fields,
+            self.missing_value,
+            self.remap_fields,
+            self.permission_error_path,
+            self.strict,
+            self.restrict_fields,
+            **loader_args,
+        )
 
     def _get_output_keys(self) -> list:
         fields = self._get_all_fields()
