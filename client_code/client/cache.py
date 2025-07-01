@@ -119,9 +119,6 @@ def find_impacted_paths(fields_or_keys: set[str]) -> set[str]:
     return impacted_paths
 
 
-
-
-
 def invalidate(
     field_or_key: str = None, *, path: str = None, auto_invalidate_paths=True
 ):
