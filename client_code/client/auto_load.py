@@ -54,11 +54,16 @@ def load_from_server(
 
     if missing_keys:
         try:
-            found.update(
-                anvil.server.call_s(
+            if anvil.is_server_side():
+                print('direct server side request')
+                from .DataFinder import _keychain_data_request
+                server_data = _keychain_data_request(missing_keys, **loader_args)
+            else:
+                print('client side request')
+                server_data = anvil.server.call_s(
                     "_keychain_data_request", missing_keys, **loader_args
                 )
-            )
+            found.update(server_data)
         except errors.AccessDenied as e:
             if permission_error_path:
                 navigate(
