@@ -57,7 +57,7 @@ def _keychain_data_request(fields_requested: list, **loader_args):
     """
     update = dict()
     for key in fields_requested:
-        # Don't repeat a call if the data is already in update
+        # Don't repeat a call if the data is already in update, this can happen with Flatten
         if key not in update:
             fn = REQUEST_MAP.get(key, None)
             if fn:
