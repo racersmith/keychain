@@ -12,4 +12,6 @@ class AlreadyRegistered(AnvilWrappedError):
 
 
 _register_exception_type(f"{AccessDenied.__module__}.AccessDenied", AccessDenied)
-_register_exception_type(f"{AlreadyRegistered.__module__}.AlreadyRegistered", AlreadyRegistered)
+_register_exception_type(
+    f"{AlreadyRegistered.__module__}.AlreadyRegistered", AlreadyRegistered
+)
